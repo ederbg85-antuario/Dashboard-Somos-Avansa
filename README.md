@@ -192,6 +192,21 @@ esa marca, así que ese botón no puede llevarse datos reales por delante.
 
 ---
 
+## Pendientes que no puedo dejar hechos
+
+Dos ajustes viven en la consola de Supabase y necesitan tu sesión:
+
+1. **Protección contra contraseñas filtradas.** *Authentication → Policies →
+   Password protection*. Supabase compara la contraseña contra la base de
+   HaveIBeenPwned y rechaza las que ya se filtraron. Un panel con datos
+   personales debería tenerla encendida.
+2. **Confirmación de correo.** Si está activa, cada persona invitada tiene que
+   abrir el correo antes de poder entrar. Es lo recomendable; sólo conviene
+   revisar que los correos salgan (Supabase trae un remitente de pruebas con
+   límite bajo — para operar de verdad hay que configurar un SMTP propio).
+
+---
+
 ## Zona horaria
 
 El despliegue fija `TZ=America/Mexico_City`. Sin eso, el contenedor arranca en
