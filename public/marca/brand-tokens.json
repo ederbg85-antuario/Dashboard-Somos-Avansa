@@ -1,0 +1,57 @@
+{
+  "name": "avansa",
+  "tagline": "Gestión Patrimonial",
+  "color": {
+    "coral": {
+      "value": "#FF4D6D",
+      "role": "Primario · marca, CTAs, acentos"
+    },
+    "deep": {
+      "value": "#0F2D3D",
+      "role": "Fondo oscuro · secciones, footer"
+    },
+    "ink": {
+      "value": "#0D1117",
+      "role": "Texto principal"
+    },
+    "slate": {
+      "value": "#6B7785",
+      "role": "Texto secundario, tagline"
+    },
+    "teal": {
+      "value": "#2FB6A3",
+      "role": "Acento · confirmaciones, checks"
+    },
+    "peach": {
+      "value": "#FFD7B5",
+      "role": "Acento cálido · destacados suaves"
+    },
+    "mist": {
+      "value": "#F4F6F8",
+      "role": "Fondo claro · superficies"
+    }
+  },
+  "typography": {
+    "family": "Poppins",
+    "wordmark": {
+      "weight": 500,
+      "tracking": "0em"
+    },
+    "tagline": {
+      "weight": 500,
+      "tracking": "0.416em",
+      "case": "uppercase"
+    }
+  },
+  "geometry": {
+    "isotipoAspect": 1.0038,
+    "logoAspect": 4.8333,
+    "strokeCap": "round",
+    "note": "El isotipo es geometría pura: 3 cápsulas + un trazo en U (arco + dos rectas). Todos los trazos comparten el mismo grosor y remates redondos."
+  },
+  "clearspace": "Margen mínimo alrededor del logo = altura del isotipo x 0.30.",
+  "minSize": {
+    "horizontal": "120 px de ancho",
+    "isotipo": "24 px"
+  }
+}

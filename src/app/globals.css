@@ -1,0 +1,141 @@
+@import "tailwindcss";
+
+/* ============================================================
+   avansa · sistema integral — sistema de diseño
+   Tokens alineados con brand/brand-tokens.json.
+
+   El sitio público es amplio y respirado; un panel de trabajo no puede
+   serlo. Aquí la misma paleta se usa con más densidad: tipografía más
+   corta, radios menores y sombras más discretas. La marca se reconoce,
+   pero la pantalla rinde para ocho horas de uso.
+   ============================================================ */
+
+@theme {
+  --color-coral:      #FF4D6D;
+  --color-coral-700:  #E63A58;
+  --color-coral-100:  #FFDCE3;
+  --color-coral-50:   #FFF0F3;
+  --color-deep:       #0F2D3D;
+  --color-deep-700:   #143A4D;
+  --color-deep-800:   #10303F;
+  --color-deep-900:   #0A2130;
+  --color-ink:        #0D1117;
+  --color-slate:      #6B7785;
+  --color-slate-400:  #9AA5B1;
+  --color-teal:       #2FB6A3;
+  --color-teal-700:   #1E9E8D;
+  --color-teal-100:   #CFEFE9;
+  --color-teal-50:    #E8F7F4;
+  --color-sand:       #D9AE83;
+  --color-sand-100:   #F5E4D2;
+  --color-sand-50:    #FBF1E7;
+  --color-peach:      #FFD7B5;
+  --color-mist:       #F4F6F8;
+  --color-paper:      #FBFBFC;
+  --color-hair:       #E4E9ED;
+  --color-hair-fuerte:#D3DBE2;
+
+  --font-sans: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "Menlo", monospace;
+
+  /* Sombras de dos capas: contacto cercano + difusión amplia. La elevación
+     se lee sin que la sombra se ensucie. */
+  --shadow-tarjeta:  0 1px 2px rgb(15 45 61 / .04), 0 6px 16px -8px rgb(15 45 61 / .10);
+  --shadow-elevada:  0 2px 4px rgb(15 45 61 / .05), 0 14px 32px -12px rgb(15 45 61 / .16);
+  --shadow-flotante: 0 4px 8px rgb(15 45 61 / .06), 0 24px 48px -16px rgb(15 45 61 / .24);
+
+  --ease-suave: cubic-bezier(.22, 1, .36, 1);
+
+  --animate-entrar: entrar .32s cubic-bezier(.22, 1, .36, 1) both;
+  --animate-latir: latir 1.8s ease-in-out infinite;
+}
+
+@keyframes entrar {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes latir {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: .35; }
+}
+
+/* ---------- base ---------- */
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  background: var(--color-mist);
+  color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection { background: var(--color-coral); color: #fff; }
+
+:focus-visible {
+  outline: 2px solid var(--color-coral);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Las cifras de dinero se alinean en columna: sin ancho tabular, los pesos
+   bailan de renglón en renglón y la tabla deja de leerse de un vistazo. */
+.cifra { font-variant-numeric: tabular-nums; }
+
+/* ---------- barras de desplazamiento ---------- */
+
+* { scrollbar-width: thin; scrollbar-color: var(--color-hair-fuerte) transparent; }
+
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb {
+  background: var(--color-hair-fuerte);
+  border: 3px solid transparent;
+  border-radius: 99px;
+  background-clip: content-box;
+}
+*::-webkit-scrollbar-thumb:hover { background: var(--color-slate-400); background-clip: content-box; }
+
+/* La barra lateral es oscura: su scroll también. */
+.scroll-oscuro { scrollbar-color: #2A4E60 transparent; }
+.scroll-oscuro::-webkit-scrollbar-thumb { background: #2A4E60; background-clip: content-box; }
+
+/* ---------- formularios ---------- */
+
+input, select, textarea, button { font: inherit; color: inherit; }
+
+input[type="date"]::-webkit-calendar-picker-indicator { cursor: pointer; opacity: .55; }
+input[type="date"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
+
+/* Quita las flechitas del input numérico: los montos se escriben, no se
+   suben de uno en uno. */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button { appearance: none; margin: 0; }
+input[type="number"] { -moz-appearance: textfield; }
+
+/* ---------- impresión ---------- */
+/* El estado de resultados se imprime y se manda al contador. */
+
+@media print {
+  body { background: #fff; }
+  .no-imprimir { display: none !important; }
+  .imprimir-completo { position: static !important; width: 100% !important; margin: 0 !important; }
+  main { overflow: visible !important; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}
+
+/* La mancha de marca de la pantalla de acceso gira muy despacio: el fondo
+   nunca queda exactamente igual dos veces, sin distraer de un formulario. */
+@keyframes girar {
+  0%   { transform: rotate(0deg)   scale(1); }
+  50%  { transform: rotate(180deg) scale(1.05); }
+  100% { transform: rotate(360deg) scale(1); }
+}
