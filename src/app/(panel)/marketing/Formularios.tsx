@@ -2,7 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
-import { Campo, CampoMonto, CampoSelect, CampoTexto } from "@/components/ui/Campo";
+import { Campo, CampoMonto, CampoSelect } from "@/components/ui/Campo";
 import { Boton } from "@/components/ui/Boton";
 import { Icono } from "@/components/ui/Icono";
 import { OBJETIVOS_META } from "@/lib/constantes";

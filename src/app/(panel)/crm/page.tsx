@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { Encabezado } from "@/components/panel/Encabezado";
 import { Tarjeta } from "@/components/ui/Tarjeta";
-import { Insignia, Punto } from "@/components/ui/Insignia";
+import { Punto } from "@/components/ui/Insignia";
 import { Icono } from "@/components/ui/Icono";
 import { BotonEnlace } from "@/components/ui/Boton";
 import { Vacio } from "@/components/ui/Vacio";

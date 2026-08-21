@@ -208,7 +208,7 @@ export async function crearLead(datos: FormData): Promise<Resultado> {
     return { ok: false, error: "El teléfono necesita 10 dígitos." };
   }
 
-  const { data, error } = await supabase
+  const { error } = await supabase
     .from("leads")
     .insert({
       nombre,
@@ -226,9 +226,7 @@ export async function crearLead(datos: FormData): Promise<Resultado> {
       asesor_id: sesion.usuarioId,
       estado: "contactado",
       probabilidad: ETAPA.contactado.probabilidad,
-    })
-    .select("id")
-    .single();
+    });
 
   if (error) return { ok: false, error: error.message };
 

@@ -85,13 +85,19 @@ export function FormularioFicha({ lead, equipo }: { lead: Lead; equipo: Perfil[]
 
 /** Registrar una llamada, un WhatsApp o una nota en la bitácora. */
 export function FormularioActividad({ leadId }: { leadId: string }) {
-  const [estado, ejecutar] = useActionState(
-    async (_p: Resultado, fd: FormData) => registrarActividad(fd),
-    inicial,
+  // El contador vive dentro del estado de la acción y sube con cada registro
+  // exitoso. Sirve de `key` para vaciar el formulario: se registran varias
+  // actividades seguidas y dejar el texto anterior invita a duplicarla.
+  const [estado, ejecutar] = useActionState<Resultado & { registradas: number }, FormData>(
+    async (previo, fd) => {
+      const r = await registrarActividad(fd);
+      return { ...r, registradas: previo.registradas + (r.ok ? 1 : 0) };
+    },
+    { ok: true, registradas: 0 },
   );
 
   return (
-    <form action={ejecutar} className="space-y-3" key={estado.ok && estado.aviso ? Math.random() : "f"}>
+    <form action={ejecutar} className="space-y-3" key={estado.registradas}>
       <input type="hidden" name="lead_id" value={leadId} />
       <div className="grid gap-3 sm:grid-cols-[9.5rem_1fr]">
         <CampoSelect etiqueta="Tipo" name="tipo" defaultValue="llamada">

@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Encabezado } from "@/components/panel/Encabezado";
 import { SelectorPeriodo } from "@/components/panel/SelectorPeriodo";
-import { puede } from "@/components/panel/navegacion";
 import { Indicador } from "@/components/ui/Indicador";
 import { CabezaTarjeta, Tarjeta } from "@/components/ui/Tarjeta";
 import { Insignia } from "@/components/ui/Insignia";

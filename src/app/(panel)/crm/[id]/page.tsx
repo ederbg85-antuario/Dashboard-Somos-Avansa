@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 import { Tarjeta, CabezaTarjeta } from "@/components/ui/Tarjeta";
 import { Insignia, Punto } from "@/components/ui/Insignia";
 import { Icono } from "@/components/ui/Icono";
-import { Boton, BotonEnlace } from "@/components/ui/Boton";
+import { Boton } from "@/components/ui/Boton";
 import { Vacio } from "@/components/ui/Vacio";
 import {
   CLASIFICACIONES, ESTATUS_DOCUMENTO, ETAPA, TIPOS_ACTIVIDAD,

@@ -77,7 +77,7 @@ export function BorrarDemo({ cuantos }: { cuantos: number }) {
   const router = useRouter();
   const [palabra, setPalabra] = useState("");
   const [estado, ejecutar] = useActionState(
-    async (_p: Resultado) => {
+    async () => {
       const r = await borrarDatosDemo();
       if (r.ok) { setPalabra(""); router.refresh(); }
       return r;

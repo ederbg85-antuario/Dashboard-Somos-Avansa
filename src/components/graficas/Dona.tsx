@@ -42,26 +42,33 @@ export function Dona({
   const R = 54;
   const grosor = 18;
   const circunferencia = 2 * Math.PI * R;
-  let recorrido = 0;
+
+  // Cada arco se dibuja con `stroke-dasharray` y se corre con `dashoffset`.
+  // El desfase se calcula aquí, antes del JSX: acumular una variable dentro
+  // del `map` de un render es frágil, y con seis rebanadas el costo de
+  // sumar lo anterior en cada vuelta es irrelevante.
+  const rebanadas = partes.map((d, i) => {
+    const previo = partes.slice(0, i).reduce((s, x) => s + x.valor, 0);
+    return {
+      ...d,
+      largo: (d.valor / total) * circunferencia,
+      desfase: -(previo / total) * circunferencia,
+    };
+  });
 
   return (
     <div className="flex flex-col items-center gap-5 sm:flex-row sm:items-center sm:gap-6">
       <div className="relative shrink-0">
         <svg viewBox="0 0 140 140" className="size-36" role="img" aria-label={titulo ?? "Composición"}>
           <g transform="rotate(-90 70 70)">
-            {partes.map((d) => {
-              const largo = (d.valor / total) * circunferencia;
-              const dash = `${largo} ${circunferencia - largo}`;
-              const offset = -recorrido;
-              recorrido += largo;
-              return (
-                <circle key={d.etiqueta} cx="70" cy="70" r={R} fill="none"
-                        stroke={d.color} strokeWidth={grosor}
-                        strokeDasharray={dash} strokeDashoffset={offset}>
-                  <title>{`${d.etiqueta}: ${fmt(d.valor)} (${porcentaje((d.valor / total) * 100)})`}</title>
-                </circle>
-              );
-            })}
+            {rebanadas.map((d) => (
+              <circle key={d.etiqueta} cx="70" cy="70" r={R} fill="none"
+                      stroke={d.color} strokeWidth={grosor}
+                      strokeDasharray={`${d.largo} ${circunferencia - d.largo}`}
+                      strokeDashoffset={d.desfase}>
+                <title>{`${d.etiqueta}: ${fmt(d.valor)} (${porcentaje((d.valor / total) * 100)})`}</title>
+              </circle>
+            ))}
           </g>
         </svg>
         <div className="pointer-events-none absolute inset-0 grid place-content-center text-center">

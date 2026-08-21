@@ -31,16 +31,20 @@ export function Cascada({ pasos, alto = 280 }: { pasos: PasoCascada[]; alto?: nu
   }
 
   // Recorre la cascada acumulando para saber de dónde a dónde va cada barra.
-  let acumulado = 0;
-  const barras = pasos.map((p) => {
-    if (p.tipo === "total") {
-      acumulado = p.monto;
-      return { ...p, desde: 0, hasta: p.monto };
-    }
-    const desde = acumulado;
-    acumulado -= p.monto;
-    return { ...p, desde, hasta: acumulado };
-  });
+  // Se hace con un `reduce` y no mutando una variable suelta: en un render de
+  // React una variable que se reasigna dentro del `map` es una trampa, y aquí
+  // además el fold expresa mejor lo que es — un recorrido con memoria.
+  const barras = pasos.reduce<{
+    filas: (PasoCascada & { desde: number; hasta: number })[];
+    acumulado: number;
+  }>(
+    (estado, p) => {
+      const hasta = p.tipo === "total" ? p.monto : estado.acumulado - p.monto;
+      const desde = p.tipo === "total" ? 0 : estado.acumulado;
+      return { filas: [...estado.filas, { ...p, desde, hasta }], acumulado: hasta };
+    },
+    { filas: [], acumulado: 0 },
+  ).filas;
 
   const valores = barras.flatMap((b) => [b.desde, b.hasta]);
   const max = Math.max(...valores, 0);
