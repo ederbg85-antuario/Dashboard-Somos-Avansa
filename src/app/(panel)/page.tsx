@@ -19,7 +19,7 @@ import {
 } from "@/lib/datos";
 import { calcular } from "@/lib/finanzas";
 import { CLASIFICACIONES, ETAPA, embudoAcumulado } from "@/lib/constantes";
-import { dinero, dineroCorto, fecha, haceCuanto, inicioDeMes, numero, porcentaje } from "@/lib/formato";
+import { dinero, dineroCorto, fecha, haceCuanto, inicioDeMes, iso, mesAbreviado, numero, porcentaje } from "@/lib/formato";
 import { diasDelRango, resolverPeriodo, ultimosMeses, variacion } from "@/lib/periodo";
 import { exigirSesion } from "@/lib/supabase/sesion";
 
@@ -287,7 +287,7 @@ export default async function Resumen({
               ) : (
                 <ul className="divide-y divide-hair">
                   {pendientes.map((l) => {
-                    const vencida = l.fecha_proxima_accion! < new Date().toISOString().slice(0, 10);
+                    const vencida = l.fecha_proxima_accion! < iso();
                     return (
                       <li key={l.id} className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0">
                         <span className={`grid size-7 shrink-0 place-items-center rounded-lg ${vencida ? "bg-coral-50 text-coral" : "bg-mist text-slate"}`}>
@@ -338,10 +338,8 @@ async function BloqueFinanciero() {
   const ultimo = datos[datos.length - 1].er;
   const anterior = datos[datos.length - 2]?.er;
 
-  const barras = datos.map((d, i) => ({
-    etiqueta: new Intl.DateTimeFormat("es-MX", { month: "short" }).format(
-      new Date(new Date().getFullYear(), new Date().getMonth() - (datos.length - 1 - i), 1),
-    ),
+  const barras = datos.map((d) => ({
+    etiqueta: mesAbreviado(d.periodo),
     valores: [
       { nombre: "Ingresos", valor: d.er.ingresos, color: "#2FB6A3" },
       { nombre: "Egresos", valor: d.er.egresosEfectivo, color: "#FF4D6D" },

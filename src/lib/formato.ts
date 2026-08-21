@@ -58,25 +58,132 @@ export const razon = (parte: number, total: number) =>
 // ---------- fechas --------------------------------------------------------
 
 /**
- * Una fecha `YYYY-MM-DD` de Postgres no lleva zona horaria. Interpretarla con
- * `new Date("2026-08-01")` la trae en UTC y en México se ve como julio 31. Por
- * eso se construye a mano en hora local.
+ * La zona horaria del negocio.
+ *
+ * No se hereda del proceso a propósito. En Vercel `TZ` es una variable
+ * reservada —no se puede definir— y el contenedor arranca en UTC: una
+ * solicitud recibida a las 20:00 en México aparecería con fecha del día
+ * siguiente, y «este mes» empezaría seis horas antes de tiempo. Todo el
+ * cálculo de fechas del panel pasa por aquí, de modo que el sistema da los
+ * mismos números en la laptop de la oficina y en el servidor.
+ */
+export const ZONA = "America/Mexico_City";
+
+const pad = (n: number) => String(n).padStart(2, "0");
+
+/** `en-CA` formatea como `YYYY-MM-DD`, que es justo lo que se necesita. */
+const fechaCivil = new Intl.DateTimeFormat("en-CA", {
+  timeZone: ZONA, year: "numeric", month: "2-digit", day: "2-digit",
+});
+
+/**
+ * Minutos de desfase de la zona respecto a UTC en ese instante.
+ * Se calcula y no se fija en −360 porque, aunque México dejó el horario de
+ * verano en 2022, la frontera norte sí lo conserva y la regla puede volver.
+ */
+function desfase(instante: Date): number {
+  const enZona = new Date(instante.toLocaleString("en-US", { timeZone: ZONA }));
+  const enUtc = new Date(instante.toLocaleString("en-US", { timeZone: "UTC" }));
+  return Math.round((enZona.getTime() - enUtc.getTime()) / 60_000);
+}
+
+/** La fecha civil de un instante en la zona del negocio: `2026-08-20`. */
+export const iso = (d: Date = new Date()): string => fechaCivil.format(d);
+
+/** Las tres partes de una fecha civil, sin pasar por `Date`. */
+const partes = (fecha: string): [number, number, number] => {
+  const [y, m, d] = fecha.split("-").map(Number);
+  return [y, m, d];
+};
+
+/**
+ * Aritmética de días sobre fechas civiles.
+ *
+ * Se hace con `Date.UTC`, que no tiene zona: sumar un día nunca cae en el
+ * agujero de un cambio de horario ni se corre por el desfase del servidor.
+ */
+export function sumarDias(fecha: string, dias: number): string {
+  const [y, m, d] = partes(fecha);
+  const t = new Date(Date.UTC(y, m - 1, d + dias));
+  return `${t.getUTCFullYear()}-${pad(t.getUTCMonth() + 1)}-${pad(t.getUTCDate())}`;
+}
+
+/** Fecha ISO de hace `n` días, contados desde la zona del negocio. */
+export const haceDias = (n: number, desde: string = iso()) => sumarDias(desde, -n);
+
+/** Primer día del mes al que pertenece `fecha`. */
+export function inicioDeMes(fecha: string = iso()): string {
+  const [y, m] = partes(fecha);
+  return `${y}-${pad(m)}-01`;
+}
+
+/** Último día del mes al que pertenece `fecha`. */
+export function finDeMes(fecha: string = iso()): string {
+  const [y, m] = partes(fecha);
+  const t = new Date(Date.UTC(y, m, 0));   // día 0 del mes siguiente
+  return `${t.getUTCFullYear()}-${pad(t.getUTCMonth() + 1)}-${pad(t.getUTCDate())}`;
+}
+
+/** Primer día del año al que pertenece `fecha`. */
+export const inicioDeAno = (fecha: string = iso()) => `${partes(fecha)[0]}-01-01`;
+
+/** Desplaza `fecha` `n` meses, quedándose en el día 1. */
+export function sumarMeses(fecha: string, n: number): string {
+  const [y, m] = partes(fecha);
+  const t = new Date(Date.UTC(y, m - 1 + n, 1));
+  return `${t.getUTCFullYear()}-${pad(t.getUTCMonth() + 1)}-01`;
+}
+
+/** Días transcurridos entre dos fechas civiles, ambas incluidas. */
+export function diasEntre(desde: string, hasta: string): number {
+  const [ay, am, ad] = partes(desde);
+  const [by, bm, bd] = partes(hasta);
+  return Math.round((Date.UTC(by, bm - 1, bd) - Date.UTC(ay, am - 1, ad)) / 86_400_000) + 1;
+}
+
+/**
+ * Los extremos de un día civil, como instantes UTC.
+ *
+ * `leads.created_at` es `timestamptz`: comparar contra la cadena
+ * «2026-08-01» la interpretaría en la zona de la sesión de Postgres (UTC) y
+ * en México se perderían las seis primeras horas del día.
+ */
+export function inicioDelDia(fecha: string): string {
+  const [y, m, d] = partes(fecha);
+  const tentativo = Date.UTC(y, m - 1, d, 0, 0, 0, 0);
+  return new Date(tentativo - desfase(new Date(tentativo)) * 60_000).toISOString();
+}
+
+export function finDelDia(fecha: string): string {
+  const [y, m, d] = partes(fecha);
+  const tentativo = Date.UTC(y, m - 1, d, 23, 59, 59, 999);
+  return new Date(tentativo - desfase(new Date(tentativo)) * 60_000).toISOString();
+}
+
+/**
+ * Una fecha `YYYY-MM-DD` de Postgres no lleva zona. Interpretarla con
+ * `new Date("2026-08-01")` la trae en UTC y al mostrarla en México se vería
+ * como julio 31, así que se construye al mediodía para que ningún desfase la
+ * mueva de día.
  */
 export function comoFecha(valor: string | Date): Date {
   if (valor instanceof Date) return valor;
   const soloFecha = /^(\d{4})-(\d{2})-(\d{2})$/.exec(valor);
   if (soloFecha) {
-    return new Date(Number(soloFecha[1]), Number(soloFecha[2]) - 1, Number(soloFecha[3]));
+    const [, y, m, d] = soloFecha;
+    return new Date(Date.UTC(Number(y), Number(m) - 1, Number(d), 12));
   }
   return new Date(valor);
 }
 
-const fechaCorta = new Intl.DateTimeFormat(LOCALE, { day: "2-digit", month: "short" });
-const fechaLarga = new Intl.DateTimeFormat(LOCALE, { day: "2-digit", month: "long", year: "numeric" });
+const conZona = { timeZone: ZONA } as const;
+const fechaCorta = new Intl.DateTimeFormat(LOCALE, { ...conZona, day: "2-digit", month: "short" });
+const fechaLarga = new Intl.DateTimeFormat(LOCALE, { ...conZona, day: "2-digit", month: "long", year: "numeric" });
 const conHora = new Intl.DateTimeFormat(LOCALE, {
-  day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit",
+  ...conZona, day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit",
 });
-const mesLargo = new Intl.DateTimeFormat(LOCALE, { month: "long", year: "numeric" });
+const mesLargo = new Intl.DateTimeFormat(LOCALE, { ...conZona, month: "long", year: "numeric" });
+const mesCorto = new Intl.DateTimeFormat(LOCALE, { ...conZona, month: "short" });
 
 export const fecha = (v: string | Date | null | undefined) =>
   v ? fechaCorta.format(comoFecha(v)) : "—";
@@ -90,6 +197,10 @@ export const fechaHora = (v: string | Date | null | undefined) =>
 export const mes = (v: string | Date | null | undefined) =>
   v ? mesLargo.format(comoFecha(v)) : "—";
 
+/** `ago` — para los ejes de las gráficas mensuales. */
+export const mesAbreviado = (v: string | Date | null | undefined) =>
+  v ? mesCorto.format(comoFecha(v)).replace(".", "") : "—";
+
 /** `hace 3 días`, `en 2 semanas`. */
 export function haceCuanto(v: string | Date | null | undefined): string {
   if (!v) return "—";
@@ -100,44 +211,6 @@ export function haceCuanto(v: string | Date | null | undefined): string {
   if (Math.abs(dias) < 365) return rtf.format(Math.round(dias / 30), "month");
   return rtf.format(Math.round(dias / 365), "year");
 }
-
-/** `2026-08-20` en hora local, que es lo que espera un `<input type="date">`. */
-export function iso(d: Date = new Date()): string {
-  const p = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
-}
-
-/** Primer día del mes de `d`, en formato ISO. */
-export function inicioDeMes(d: Date = new Date()): string {
-  return iso(new Date(d.getFullYear(), d.getMonth(), 1));
-}
-
-/** Último día del mes de `d`, en formato ISO. */
-export function finDeMes(d: Date = new Date()): string {
-  return iso(new Date(d.getFullYear(), d.getMonth() + 1, 0));
-}
-
-/** Fecha ISO de hace `n` días. */
-export function haceDias(n: number, desde: Date = new Date()): string {
-  const d = new Date(desde);
-  d.setDate(d.getDate() - n);
-  return iso(d);
-}
-
-/**
- * Límites de un día local convertidos a instante UTC.
- *
- * `leads.created_at` es `timestamptz`: comparar contra la cadena "2026-08-01"
- * la interpretaría en la zona de la sesión de Postgres (UTC) y en México se
- * perderían las seis primeras horas del día. Estas dos funciones construyen
- * el instante correcto a partir de la hora local del proceso — por eso el
- * despliegue fija `TZ=America/Mexico_City`.
- */
-export const inicioDelDia = (fechaLocal: string) =>
-  new Date(`${fechaLocal}T00:00:00`).toISOString();
-
-export const finDelDia = (fechaLocal: string) =>
-  new Date(`${fechaLocal}T23:59:59.999`).toISOString();
 
 /** Iniciales para el avatar: `Laura Méndez` → `LM`. */
 export function iniciales(nombre: string): string {

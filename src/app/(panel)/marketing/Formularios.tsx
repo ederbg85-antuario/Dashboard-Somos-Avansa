@@ -6,7 +6,7 @@ import { Campo, CampoMonto, CampoSelect, CampoTexto } from "@/components/ui/Camp
 import { Boton } from "@/components/ui/Boton";
 import { Icono } from "@/components/ui/Icono";
 import { OBJETIVOS_META } from "@/lib/constantes";
-import { iso } from "@/lib/formato";
+import { haceDias, iso } from "@/lib/formato";
 import type { Campana } from "@/lib/supabase/tipos";
 import { guardarCampana, guardarMetrica, sincronizarConMeta, type Resultado } from "./acciones";
 
@@ -97,7 +97,7 @@ export function CapturaMetrica({ campanas }: { campanas: Campana[] }) {
         <CampoSelect etiqueta="Campaña" name="campana_id" requerido>
           {campanas.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
         </CampoSelect>
-        <Campo etiqueta="Día" name="fecha" type="date" requerido defaultValue={iso(new Date(Date.now() - 86400000))} />
+        <Campo etiqueta="Día" name="fecha" type="date" requerido defaultValue={haceDias(1)} />
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">

@@ -11,7 +11,7 @@ import { Encabezados, Fila, Tabla, Td, Th } from "@/components/ui/Tabla";
 import { Dona } from "@/components/graficas/Dona";
 import { Barras } from "@/components/graficas/Barras";
 import { ESTATUS_MOVIMIENTO, NATURALEZAS } from "@/lib/constantes";
-import { dinero, dineroCorto, fecha, numero, porcentaje } from "@/lib/formato";
+import { dinero, dineroCorto, fecha, mesAbreviado, numero, porcentaje } from "@/lib/formato";
 import { resolverPeriodo, ultimosMeses, variacion } from "@/lib/periodo";
 import { calcular } from "@/lib/finanzas";
 import {
@@ -63,10 +63,8 @@ export default async function Finanzas({
     gastoPorCategoria.set(m.categoria.id, actual);
   }
 
-  const barrasMes = porMes.map((d, i) => ({
-    etiqueta: new Intl.DateTimeFormat("es-MX", { month: "short" }).format(
-      new Date(new Date().getFullYear(), new Date().getMonth() - (porMes.length - 1 - i), 1),
-    ),
+  const barrasMes = porMes.map((d) => ({
+    etiqueta: mesAbreviado(d.periodo),
     valores: [
       { nombre: "Ingresos", valor: d.er.ingresos, color: "#2FB6A3" },
       { nombre: "Egresos", valor: d.er.egresosEfectivo, color: "#FF4D6D" },

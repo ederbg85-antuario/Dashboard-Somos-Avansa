@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { clienteServidor } from "@/lib/supabase/servidor";
 import { exigirRol } from "@/lib/supabase/sesion";
+import { iso } from "@/lib/formato";
 import type { EstatusMovimiento, TipoMovimiento } from "@/lib/supabase/tipos";
 
 export type Resultado = { ok: true; aviso?: string } | { ok: false; error: string };
@@ -45,7 +46,7 @@ export async function guardarMovimiento(datos: FormData): Promise<Resultado> {
 
   const iva = Number(datos.get("iva"));
   const fila = {
-    fecha: texto(datos, "fecha", 10) ?? new Date().toISOString().slice(0, 10),
+    fecha: texto(datos, "fecha", 10) ?? iso(),
     tipo: categoria.tipo as TipoMovimiento,
     categoria_id,
     concepto,

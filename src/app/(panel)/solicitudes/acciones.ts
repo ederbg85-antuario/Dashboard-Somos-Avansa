@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { clienteServidor } from "@/lib/supabase/servidor";
 import { exigirSesion } from "@/lib/supabase/sesion";
 import { ETAPA } from "@/lib/constantes";
+import { iso } from "@/lib/formato";
 
 /**
  * «Tomar» una solicitud: la asigna a quien la toma y la pasa a Contactado en
@@ -22,7 +23,7 @@ export async function tomarSolicitud(datos: FormData): Promise<void> {
       estado: "contactado",
       probabilidad: ETAPA.contactado.probabilidad,
       proxima_accion: "Primer contacto por WhatsApp",
-      fecha_proxima_accion: new Date().toISOString().slice(0, 10),
+      fecha_proxima_accion: iso(),
     })
     .eq("id", id)
     .eq("estado", "nuevo");   // no reabre algo que alguien ya movió
