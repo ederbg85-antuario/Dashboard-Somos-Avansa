@@ -194,6 +194,32 @@ export type Invitacion = {
   created_at: string;
 };
 
+/**
+ * Reparto de una conversación de Chatwoot.
+ *
+ * El `id` es el de Chatwoot, no un serial nuestro: esta fila es el reflejo
+ * local de algo que vive allá, y sólo guarda lo que allá no puede decidirse
+ * —quién la atiende— porque el equipo no tiene usuario en Chatwoot.
+ */
+export type Conversacion = {
+  id: number;
+  bandeja_id: number;
+  asignado_a: string | null;
+  asignado_en: string | null;
+  asignado_por: string | null;
+  lead_id: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+/** Firma de un mensaje saliente: Chatwoot los recibe todos igual. */
+export type Respuesta = {
+  mensaje_id: number;
+  conversacion_id: number;
+  autor_id: string | null;
+  enviado_en: string;
+};
+
 export type Meta = {
   id: string;
   periodo: string;
@@ -259,6 +285,8 @@ export type Database = {
       movimientos: Tabla<Movimiento>;
       metas: Tabla<Meta>;
       invitaciones: Tabla<Invitacion>;
+      conversaciones: Tabla<Conversacion>;
+      respuestas: Tabla<Respuesta>;
     };
     Views: {
       v_pipeline: Vista<FilaPipeline>;
@@ -269,6 +297,8 @@ export type Database = {
       hay_equipo: { Args: Record<string, never>; Returns: boolean };
       /** Rol de quien consulta, o `null` si no es del equipo. */
       mi_rol: { Args: Record<string, never>; Returns: RolUsuario | null };
+      /** Regla única de visibilidad de la bandeja; la comparten RLS y la API. */
+      puede_ver_conversacion: { Args: { conv: number }; Returns: boolean };
     };
     Enums: {
       rol_usuario: RolUsuario;

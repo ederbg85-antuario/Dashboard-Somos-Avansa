@@ -31,6 +31,8 @@ export const MENU: Grupo[] = [
         descripcion: "El estado del negocio hoy" },
       { href: "/solicitudes", etiqueta: "Solicitudes", icono: "bandeja", modulo: "solicitudes", prefijo: true,
         descripcion: "Lo que llega del sitio web" },
+      { href: "/conversaciones", etiqueta: "Conversaciones", icono: "conversacion", modulo: "conversaciones", prefijo: true,
+        descripcion: "WhatsApp del equipo" },
       { href: "/crm", etiqueta: "CRM", icono: "embudo", modulo: "crm", prefijo: true,
         descripcion: "Pipeline y expedientes" },
     ],

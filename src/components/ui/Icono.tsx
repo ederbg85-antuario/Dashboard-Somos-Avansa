@@ -54,6 +54,7 @@ const TRAZOS: Record<string, React.ReactNode> = {
   ojo: <><path d="M2.5 12S6 6 12 6s9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" /><circle cx="12" cy="12" r="2.8" /></>,
   candado: <><rect x="4.5" y="10" width="15" height="10.5" rx="2.5" /><path d="M8 10V7.5a4 4 0 0 1 8 0V10" /></>,
   menu: <><path d="M4 7h16M4 12h16M4 17h16" /></>,
+  conversacion: <><path d="M20.5 12.5a7.5 7.5 0 0 1-10.9 6.7L4.5 20.5l1.4-5A7.5 7.5 0 1 1 20.5 12.5Z" /><path d="M9 11h6M9 14.5h3.5" /></>,
 };
 
 export type NombreIcono = keyof typeof TRAZOS;

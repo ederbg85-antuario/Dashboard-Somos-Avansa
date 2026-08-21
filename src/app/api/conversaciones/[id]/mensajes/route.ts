@@ -1,0 +1,111 @@
+import { NextResponse } from "next/server";
+import { cargarMensajes, puedeVer } from "@/lib/bandeja";
+import * as cw from "@/lib/chatwoot/cliente";
+import { clienteServidor } from "@/lib/supabase/servidor";
+import { obtenerSesion } from "@/lib/supabase/sesion";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+const LARGO_MAX = 4000; // WhatsApp corta en 4096; se deja margen.
+
+/** Mismo trámite en las dos operaciones: sesión, id válido y permiso. */
+async function permiso(params: Promise<{ id: string }>) {
+  const sesion = await obtenerSesion();
+  if (!sesion) return { error: NextResponse.json({ error: "Sin sesión" }, { status: 401 }) };
+
+  const { id } = await params;
+  const conversacion = Number(id);
+  if (!Number.isInteger(conversacion) || conversacion <= 0) {
+    return { error: NextResponse.json({ error: "Conversación inválida" }, { status: 400 }) };
+  }
+
+  // 404 y no 403 a propósito: un 403 confirmaría que la conversación existe
+  // y es de otra persona, que es justo lo que no queremos revelar.
+  if (!(await puedeVer(conversacion))) {
+    return { error: NextResponse.json({ error: "No encontrada" }, { status: 404 }) };
+  }
+
+  return { sesion, conversacion };
+}
+
+export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
+  const p = await permiso(ctx.params);
+  if (p.error) return p.error;
+
+  try {
+    return NextResponse.json({ mensajes: await cargarMensajes(p.conversacion, p.sesion) });
+  } catch (e) {
+    return NextResponse.json(
+      { error: e instanceof Error ? e.message : "Error al leer los mensajes" },
+      { status: 502 },
+    );
+  }
+}
+
+/**
+ * Responder.
+ *
+ * A Chatwoot le llega con la identidad de la integración —no tiene otra—, así
+ * que quién escribió se guarda aquí en el mismo movimiento. Si esa firma
+ * fallara, el mensaje ya salió: se registra el problema pero no se le dice a
+ * la persona que falló, porque su mensaje sí llegó.
+ */
+export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
+  const p = await permiso(ctx.params);
+  if (p.error) return p.error;
+
+  let cuerpo: { texto?: unknown };
+  try {
+    cuerpo = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Cuerpo inválido" }, { status: 400 });
+  }
+
+  const texto = typeof cuerpo.texto === "string" ? cuerpo.texto.trim() : "";
+  if (!texto) return NextResponse.json({ error: "El mensaje viene vacío" }, { status: 400 });
+  if (texto.length > LARGO_MAX) {
+    return NextResponse.json(
+      { error: `El mensaje pasa de ${LARGO_MAX} caracteres` },
+      { status: 400 },
+    );
+  }
+
+  const supabase = await clienteServidor();
+
+  // Responder una conversación libre la deja a tu nombre, y se hace **antes**
+  // de enviar: es lo que evita que dos personas le escriban a la vez a la
+  // misma. El `is null` hace que gane quien llegue primero — al segundo no le
+  // toca ninguna fila y sigue de largo sin robar la conversación.
+  await supabase
+    .from("conversaciones")
+    .update({
+      asignado_a: p.sesion.usuarioId,
+      asignado_en: new Date().toISOString(),
+      asignado_por: p.sesion.usuarioId,
+    })
+    .eq("id", p.conversacion)
+    .is("asignado_a", null);
+
+  let enviado;
+  try {
+    enviado = await cw.responder(p.conversacion, texto);
+  } catch (e) {
+    return NextResponse.json(
+      { error: e instanceof Error ? e.message : "No se pudo enviar" },
+      { status: 502 },
+    );
+  }
+
+  try {
+    await supabase.from("respuestas").insert({
+      mensaje_id: enviado.id,
+      conversacion_id: p.conversacion,
+      autor_id: p.sesion.usuarioId,
+    });
+  } catch (e) {
+    console.error("El mensaje salió pero no se pudo firmar:", e);
+  }
+
+  return NextResponse.json({ id: enviado.id }, { status: 201 });
+}

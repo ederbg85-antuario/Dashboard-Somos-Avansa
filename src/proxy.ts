@@ -43,6 +43,15 @@ export async function proxy(peticion: NextRequest) {
   const esPublica = PUBLICAS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 
   if (!user && !esPublica) {
+    // A una llamada de datos se le contesta con un 401, no con la página de
+    // entrar: quien la hizo es un `fetch`, y seguir la redirección le
+    // devolvería el HTML del login con un 200. La bandeja se quedaría
+    // refrescando en silencio contra una sesión que ya no existe, mostrando
+    // mensajes viejos sin avisar de nada.
+    if (pathname.startsWith("/api/")) {
+      return NextResponse.json({ error: "Sin sesión" }, { status: 401 });
+    }
+
     const destino = peticion.nextUrl.clone();
     destino.pathname = "/entrar";
     // Se recuerda a dónde iba para devolverlo ahí después de entrar.

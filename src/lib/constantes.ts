@@ -251,6 +251,9 @@ export const ROLES: Record<RolUsuario, { nombre: string; descripcion: string; co
 export const ACCESO_MODULOS: Record<string, RolUsuario[]> = {
   resumen:    ["admin", "asesor", "marketing", "finanzas"],
   solicitudes:["admin", "asesor", "marketing", "finanzas"],
+  // Marketing y finanzas no atienden leads: la bandeja lleva conversaciones
+  // con personas reales y no hay razón para que la vean.
+  conversaciones:["admin", "asesor"],
   crm:        ["admin", "asesor", "marketing", "finanzas"],
   marketing:  ["admin", "asesor", "marketing", "finanzas"],
   finanzas:   ["admin", "finanzas"],
