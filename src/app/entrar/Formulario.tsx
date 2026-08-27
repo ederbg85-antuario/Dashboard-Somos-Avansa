@@ -25,7 +25,7 @@ export function Formulario({ destino }: { destino: string }) {
       )}
       <Enviar />
       <p className="text-center text-[0.76rem] leading-relaxed text-slate">
-        Las cuentas se crean únicamente desde la invitación enviada por avansa.
+        Acceso disponible únicamente mediante invitación de avansa.
       </p>
     </form>
   );
