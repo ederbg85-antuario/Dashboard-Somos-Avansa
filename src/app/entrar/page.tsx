@@ -1,6 +1,6 @@
 import Image from "next/image";
 import type { Metadata } from "next";
-import { clienteServidor, hayCredenciales } from "@/lib/supabase/servidor";
+import { hayCredenciales } from "@/lib/supabase/servidor";
 import { DISCLAIMER } from "@/lib/constantes";
 import { Icono } from "@/components/ui/Icono";
 import { Formulario } from "./Formulario";
@@ -13,14 +13,6 @@ export default async function PaginaEntrar({
   searchParams: Promise<{ destino?: string; motivo?: string }>;
 }) {
   const { destino = "/", motivo } = await searchParams;
-
-  // ¿Ya hay equipo? Si no, la pantalla ofrece crear la cuenta fundadora.
-  let instalado = true;
-  if (hayCredenciales) {
-    const supabase = await clienteServidor();
-    const { data } = await supabase.rpc("hay_equipo");
-    instalado = data !== false;
-  }
 
   return (
     <main className="grid min-h-dvh lg:grid-cols-[1fr_minmax(0,29rem)]">
@@ -69,12 +61,10 @@ export default async function PaginaEntrar({
                  width={140} height={29} priority className="h-7 w-auto lg:hidden" />
 
           <h2 className="mt-8 text-[1.35rem] font-semibold tracking-tight text-ink lg:mt-0">
-            {instalado ? "Entra al sistema" : "Instala el sistema"}
+            Entra al sistema
           </h2>
           <p className="mt-1.5 mb-7 text-[0.84rem] leading-relaxed text-slate">
-            {instalado
-              ? "Acceso exclusivo del equipo de avansa."
-              : "Crea la cuenta con la que vas a administrar todo."}
+            Acceso exclusivo del equipo de avansa.
           </p>
 
           {!hayCredenciales ? (
@@ -86,7 +76,12 @@ export default async function PaginaEntrar({
                   Tu cuenta está dada de baja. Pídele a un administrador que la reactive.
                 </p>
               )}
-              <Formulario instalado={instalado} destino={destino} />
+              {motivo === "enlace-invalido" && (
+                <p role="alert" className="mb-4 rounded-xl bg-coral-50 px-3 py-2.5 text-[0.8rem] leading-snug text-coral-700">
+                  El enlace de invitación venció o ya fue usado. Solicita uno nuevo a un administrador.
+                </p>
+              )}
+              <Formulario destino={destino} />
             </>
           )}
 

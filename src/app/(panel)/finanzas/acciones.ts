@@ -28,7 +28,7 @@ function refrescar() {
  * categoría, y un trigger de la base rechaza cualquier combinación imposible.
  */
 export async function guardarMovimiento(datos: FormData): Promise<Resultado> {
-  const sesion = await exigirRol("admin", "finanzas");
+  const sesion = await exigirRol("admin");
   const supabase = await clienteServidor();
 
   const categoria_id = texto(datos, "categoria_id", 40);
@@ -83,7 +83,7 @@ export async function guardarMovimiento(datos: FormData): Promise<Resultado> {
  * cifra entre dos cierres.
  */
 export async function cambiarEstatusMovimiento(datos: FormData): Promise<void> {
-  await exigirRol("admin", "finanzas");
+  await exigirRol("admin");
   const supabase = await clienteServidor();
 
   await supabase
@@ -97,7 +97,7 @@ export async function cambiarEstatusMovimiento(datos: FormData): Promise<void> {
 // ---------- catálogo ------------------------------------------------------
 
 export async function guardarCategoria(datos: FormData): Promise<Resultado> {
-  await exigirRol("admin", "finanzas");
+  await exigirRol("admin");
   const supabase = await clienteServidor();
 
   const nombre = texto(datos, "nombre", 80);
@@ -129,7 +129,7 @@ export async function guardarCategoria(datos: FormData): Promise<Resultado> {
 }
 
 export async function guardarMeta(datos: FormData): Promise<Resultado> {
-  await exigirRol("admin", "finanzas");
+  await exigirRol("admin");
   const supabase = await clienteServidor();
 
   const periodo = texto(datos, "periodo", 10);

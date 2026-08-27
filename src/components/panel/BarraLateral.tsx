@@ -19,8 +19,8 @@ import { CerrarSesion } from "./CerrarSesion";
  * porque 260 px sobre 375 no dejan trabajar.
  */
 export function BarraLateral({
-  grupos, nombre, email, rol,
-}: { grupos: Grupo[]; nombre: string; email: string; rol: RolUsuario }) {
+  grupos, nombre, email, rol, avatarUrl,
+}: { grupos: Grupo[]; nombre: string; email: string; rol: RolUsuario; avatarUrl: string | null }) {
   const ruta = usePathname();
   const [abierta, setAbierta] = useState(false);
 
@@ -119,15 +119,20 @@ export function BarraLateral({
 
         <div className="shrink-0 border-t border-white/10 p-3">
           <div className="flex items-center gap-3 rounded-xl px-2 py-2">
-            <span className="grid size-9 shrink-0 place-items-center rounded-full bg-coral text-[0.75rem] font-semibold text-white">
-              {iniciales(nombre)}
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-[0.82rem] font-semibold text-white">{nombre}</span>
-              <span className="block truncate text-[0.7rem] text-white/45" title={email}>
-                {ROLES[rol].nombre}
+            <Link href="/perfil" className="contents" onClick={() => setAbierta(false)}>
+              <span
+                className="grid size-9 shrink-0 place-items-center rounded-full bg-coral bg-cover bg-center text-[0.75rem] font-semibold text-white"
+                style={avatarUrl ? { backgroundImage: `url(${avatarUrl})` } : undefined}
+              >
+                {!avatarUrl && iniciales(nombre)}
               </span>
-            </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[0.82rem] font-semibold text-white">{nombre}</span>
+                <span className="block truncate text-[0.7rem] text-white/45" title={email}>
+                  {ROLES[rol].nombre}
+                </span>
+              </span>
+            </Link>
             <CerrarSesion />
           </div>
         </div>

@@ -29,7 +29,7 @@ export default async function Reportes({
 }: {
   searchParams: Promise<{ periodo?: string }>;
 }) {
-  await exigirRol("admin", "finanzas");
+  await exigirRol("admin");
   const { periodo } = await searchParams;
   const rango = resolverPeriodo(periodo ?? "mes");
 

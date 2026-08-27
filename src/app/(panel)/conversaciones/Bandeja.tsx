@@ -74,11 +74,10 @@ function iniciales(nombre: string): string {
 }
 
 export function Bandeja({
-  inicial, ocultas: ocultasIniciales, yo, rol, equipo,
+  inicial, ocultas: ocultasIniciales, rol, equipo,
 }: {
   inicial: Fila[];
   ocultas: number;
-  yo: string;
   rol: RolUsuario;
   equipo: Companero[];
 }) {
@@ -90,14 +89,14 @@ export function Bandeja({
   const [texto, setTexto] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [aviso, setAviso] = useState<string | null>(null);
-  const [filtro, setFiltro] = useState<"mias" | "libres" | "todas">("mias");
+  const [filtro, setFiltro] = useState<"mias" | "todas">(rol === "admin" ? "todas" : "mias");
   const [busca, setBusca] = useState("");
 
   const finDelHilo = useRef<HTMLDivElement>(null);
   const cajaTexto = useRef<HTMLTextAreaElement>(null);
 
   const conversacion = filas.find((f) => f.id === abierta) ?? null;
-  const atendibles = equipo.filter((p) => p.rol === "admin" || p.rol === "asesor");
+  const atendibles = equipo.filter((p) => p.rol === "asesor");
 
   // ---------- datos ----------
 
@@ -199,7 +198,7 @@ export function Bandeja({
     }
   }
 
-  async function asignar(id: number, a: string | null) {
+  async function asignar(id: number, a: string) {
     setAviso(null);
     const r = await fetch(`/api/conversaciones/${id}/asignar`, {
       method: "POST",
@@ -219,7 +218,6 @@ export function Bandeja({
     const q = busca.trim().toLowerCase();
     return filas.filter((f) => {
       if (filtro === "mias" && !f.mia) return false;
-      if (filtro === "libres" && !f.libre) return false;
       if (!q) return true;
       return (
         f.nombre.toLowerCase().includes(q) ||
@@ -231,15 +229,12 @@ export function Bandeja({
 
   const cuenta = {
     mias: filas.filter((f) => f.mia).length,
-    libres: filas.filter((f) => f.libre).length,
     todas: filas.length,
   };
 
-  const PESTANAS = [
-    { clave: "mias" as const, etiqueta: "Mías", n: cuenta.mias },
-    { clave: "libres" as const, etiqueta: "Sin tomar", n: cuenta.libres },
-    { clave: "todas" as const, etiqueta: rol === "admin" ? "Todas" : "Visibles", n: cuenta.todas },
-  ];
+  const PESTANAS = rol === "admin"
+    ? [{ clave: "todas" as const, etiqueta: "Todas", n: cuenta.todas }]
+    : [{ clave: "mias" as const, etiqueta: "Asignadas a mí", n: cuenta.mias }];
 
   return (
     <div className="h-[calc(100dvh-15rem)] min-h-[32rem] overflow-hidden rounded-2xl bg-white ring-1 ring-hair shadow-tarjeta">
@@ -290,14 +285,12 @@ export function Bandeja({
               <Vacio
                 icono="conversacion"
                 titulo={
-                  filtro === "mias" ? "No tienes conversaciones" :
-                  filtro === "libres" ? "No hay ninguna sin tomar" :
-                  "Todavía no llega nada"
+                  filtro === "mias" ? "No tienes conversaciones asignadas" : "Todavía no llega nada"
                 }
                 texto={
                   filtro === "mias"
-                    ? "Cuando tomes una de «Sin tomar», o alguien te asigne una, aparecerá aquí."
-                    : "En cuanto alguien escriba al WhatsApp de avansa, la conversación entra sola."
+                    ? "El reparto automático colocará aquí únicamente las conversaciones que te correspondan."
+                    : "En cuanto alguien escriba al WhatsApp de avansa, la conversación entra y se reparte sola."
                 }
               />
             ) : (
@@ -339,7 +332,7 @@ export function Bandeja({
                         <span className="mt-1 flex flex-wrap items-center gap-1">
                           {f.libre ? (
                             <span className="rounded-full bg-sand-50 px-2 py-0.5 text-[0.64rem] font-semibold text-[#B9884F]">
-                              Sin tomar
+                              Sin asesor disponible
                             </span>
                           ) : f.mia ? (
                             <span className="rounded-full bg-teal-50 px-2 py-0.5 text-[0.64rem] font-semibold text-teal-700">
@@ -404,24 +397,14 @@ export function Bandeja({
                 </div>
 
                 <div className="flex shrink-0 items-center gap-2">
-                  {conversacion.libre && (
-                    <Boton tamano="sm" tono="coral" onClick={() => asignar(conversacion.id, yo)}>
-                      Tomarla
-                    </Boton>
-                  )}
-                  {conversacion.mia && (
-                    <Boton tamano="sm" tono="claro" onClick={() => asignar(conversacion.id, null)}>
-                      Soltar
-                    </Boton>
-                  )}
                   {rol === "admin" && (
                     <select
                       value={conversacion.asignadoA ?? ""}
-                      onChange={(e) => asignar(conversacion.id, e.target.value || null)}
+                      onChange={(e) => e.target.value && asignar(conversacion.id, e.target.value)}
                       className="h-8 rounded-xl bg-mist px-2 text-[0.76rem] font-semibold text-ink focus:outline-none focus:ring-2 focus:ring-coral/40"
                       aria-label="Asignar a"
                     >
-                      <option value="">Sin asignar</option>
+                      <option value="" disabled>Sin asesor disponible</option>
                       {atendibles.map((p) => (
                         <option key={p.id} value={p.id}>{p.nombre}</option>
                       ))}
@@ -494,10 +477,13 @@ export function Bandeja({
               )}
 
               <footer className="shrink-0 border-t border-hair p-3">
-                {!conversacion.mia && !conversacion.libre && rol !== "admin" ? (
+                {rol === "admin" ? (
                   <p className="px-1 py-2 text-center text-[0.78rem] text-slate">
-                    La atiende {conversacion.asignadoNombre}. No respondas aquí para no
-                    escribirle dos veces a la misma persona.
+                    Vista de supervisión. Los administradores no responden mensajes.
+                  </p>
+                ) : !conversacion.mia ? (
+                  <p className="px-1 py-2 text-center text-[0.78rem] text-slate">
+                    Esta conversación no está asignada a tu perfil.
                   </p>
                 ) : (
                   <div className="flex items-end gap-2">
@@ -509,11 +495,7 @@ export function Bandeja({
                         if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); enviar(); }
                       }}
                       rows={1}
-                      placeholder={
-                        conversacion.libre
-                          ? "Escribe y la conversación queda a tu nombre…"
-                          : "Escribe un mensaje…"
-                      }
+                      placeholder="Escribe un mensaje…"
                       className="max-h-32 min-h-[2.5rem] flex-1 resize-y rounded-xl bg-mist px-3 py-2.5 text-[0.84rem] text-ink placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-coral/40"
                     />
                     <Boton onClick={enviar} disabled={enviando || !texto.trim()} tono="coral">

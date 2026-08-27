@@ -18,7 +18,10 @@ export function Invitar() {
     <form action={ejecutar} className="space-y-3">
       <Campo etiqueta="Correo" name="email" type="email" requerido
              placeholder="asesor@somosavansa.com" />
-      <Campo etiqueta="Nombre" name="nombre" placeholder="Opcional; lo puede cambiar después" />
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Campo etiqueta="Nombre" name="nombre" placeholder="Rene" requerido />
+        <Campo etiqueta="Apellidos" name="apellidos" placeholder="Avendaño" requerido />
+      </div>
       <CampoSelect etiqueta="Rol" name="rol" defaultValue="asesor">
         {(Object.keys(ROLES) as (keyof typeof ROLES)[]).map((r) => (
           <option key={r} value={r}>{ROLES[r].nombre} — {ROLES[r].descripcion}</option>
@@ -45,7 +48,7 @@ function Enviar() {
   const { pending } = useFormStatus();
   return (
     <Boton type="submit" tono="coral" disabled={pending} className="w-full">
-      {pending ? "Invitando…" : "Enviar invitación"}
+      {pending ? "Enviando…" : "Enviar invitación"}
     </Boton>
   );
 }

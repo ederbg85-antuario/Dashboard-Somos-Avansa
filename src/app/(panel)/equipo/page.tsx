@@ -45,7 +45,7 @@ export default async function Equipo() {
     <>
       <Encabezado
         titulo="Equipo"
-        apoyo="Quién entra al sistema y qué puede ver. El rol gobierna tanto el menú como lo que la base de datos deja leer: cambiarlo aquí cierra o abre el acceso de verdad, no sólo la pantalla."
+        apoyo="Administradores ven todo; cada asesor recibe y ve únicamente sus propios leads, conversaciones y pipeline."
       />
 
       <div className="grid gap-4 xl:grid-cols-[1.6fr_1fr]">
@@ -76,7 +76,7 @@ export default async function Equipo() {
                           </span>
                           <span className="min-w-0">
                             <span className="block truncate font-semibold text-ink">
-                              {p.nombre}{yo && <span className="ml-1.5 text-[0.7rem] font-normal text-slate">(tú)</span>}
+                              {p.nombre} {p.apellidos}{yo && <span className="ml-1.5 text-[0.7rem] font-normal text-slate">(tú)</span>}
                             </span>
                             <span className="block truncate text-[0.72rem] text-slate">{p.email}</span>
                           </span>
@@ -154,7 +154,7 @@ export default async function Equipo() {
           <Tarjeta>
             <CabezaTarjeta
               titulo="Invitar a alguien"
-              apoyo="Se autoriza el correo; la persona crea su contraseña desde la pantalla de acceso. Sin invitación vigente, la base rechaza el alta."
+              apoyo="El correo brandeado permite crear la contraseña y completar el perfil. Sin invitación vigente, la base rechaza el alta."
             />
             <div className="mt-4"><Invitar /></div>
           </Tarjeta>

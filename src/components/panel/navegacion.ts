@@ -56,6 +56,8 @@ export const MENU: Grupo[] = [
   {
     titulo: "Sistema",
     entradas: [
+      { href: "/perfil", etiqueta: "Mi perfil", icono: "usuarios", modulo: "perfil",
+        descripcion: "Nombre, teléfono y foto" },
       { href: "/equipo", etiqueta: "Equipo", icono: "equipo", modulo: "equipo",
         descripcion: "Personas y permisos" },
       { href: "/ajustes", etiqueta: "Ajustes", icono: "ajustes", modulo: "ajustes",

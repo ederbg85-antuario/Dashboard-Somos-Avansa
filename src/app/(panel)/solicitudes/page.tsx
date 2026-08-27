@@ -5,20 +5,20 @@ import { CabezaTarjeta, Tarjeta } from "@/components/ui/Tarjeta";
 import { Insignia } from "@/components/ui/Insignia";
 import { Icono } from "@/components/ui/Icono";
 import { Vacio } from "@/components/ui/Vacio";
-import { Boton, BotonEnlace } from "@/components/ui/Boton";
+import { BotonEnlace } from "@/components/ui/Boton";
 import { CLASIFICACIONES, ETAPA } from "@/lib/constantes";
 import { dinero, fechaHora, haceCuanto, numero } from "@/lib/formato";
 import { clienteServidor } from "@/lib/supabase/servidor";
 import { exigirSesion } from "@/lib/supabase/sesion";
 import { nombresDelEquipo } from "@/lib/datos";
 import type { Lead } from "@/lib/supabase/tipos";
-import { tomarSolicitud } from "./acciones";
+import { telefonoWhatsAppMexico } from "@/lib/telefono";
 
 export const metadata: Metadata = { title: "Solicitudes" };
 export const dynamic = "force-dynamic";
 
 const FILTROS = [
-  { clave: "sin-atender", etiqueta: "Sin atender" },
+  { clave: "sin-atender", etiqueta: "Nuevas" },
   { clave: "hoy",         etiqueta: "De hoy" },
   { clave: "sitio",       etiqueta: "Del sitio web" },
   { clave: "todas",       etiqueta: "Todas" },
@@ -52,7 +52,7 @@ export default async function Solicitudes({
     <>
       <Encabezado
         titulo="Solicitudes"
-        apoyo="Lo que la gente manda desde el formulario de somosavansa.com llega aquí primero. En cuanto alguien la toma, la solicitud se convierte en expediente y pasa al CRM."
+        apoyo="Cada formulario llega asignado automáticamente. Un asesor ve sólo los suyos; los administradores supervisan todos."
         acciones={
           <BotonEnlace href="/crm?alta=1" tono="coral">
             <Icono nombre="mas" className="size-4" />
@@ -96,10 +96,10 @@ export default async function Solicitudes({
         <Tarjeta>
           <Vacio
             icono="bandeja"
-            titulo={filtro === "sin-atender" ? "No hay solicitudes sin atender" : "Sin solicitudes con este filtro"}
+            titulo={filtro === "sin-atender" ? "No hay formularios nuevos" : "Sin solicitudes con este filtro"}
             texto={
               filtro === "sin-atender"
-                ? "Todo lo que entró del sitio ya tiene dueño. Cuando llegue una nueva, aparece aquí."
+                ? "Cuando llegue un formulario asignado a tu perfil, aparecerá aquí."
                 : "Prueba con otro filtro o revisa el tablero del CRM."
             }
             accion={<BotonEnlace href="/solicitudes?filtro=todas" tamano="sm" tono="claro">Ver todas</BotonEnlace>}
@@ -142,7 +142,7 @@ function TarjetaSolicitud({ solicitud: s, asesor }: { solicitud: Lead; asesor?: 
       {/* Contacto: los dos botones que de verdad se usan, listos para tocar. */}
       <div className="mt-3 flex flex-wrap gap-1.5">
         <a
-          href={`https://wa.me/52${s.telefono.replace(/\D/g, "")}`}
+          href={`https://wa.me/${telefonoWhatsAppMexico(s.telefono)}`}
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-teal-50 px-2.5 text-[0.76rem] font-semibold text-teal-700 transition hover:bg-teal-100"
@@ -163,10 +163,23 @@ function TarjetaSolicitud({ solicitud: s, asesor }: { solicitud: Lead; asesor?: 
 
       {/* Lo que declaró en el formulario */}
       <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 border-t border-hair pt-3">
-        <Dato rotulo="Saldo declarado" valor={s.saldo_subcuenta ? dinero(s.saldo_subcuenta) : "No lo indicó"} />
-        <Dato rotulo="Vivienda a su nombre"
-              valor={s.vivienda_a_su_nombre === null ? "No lo indicó" : s.vivienda_a_su_nombre ? "Sí" : "No"} />
-        <Dato rotulo="Mejora que busca" valor={s.tipo_mejora ?? "Sin definir"} className="col-span-2" />
+        <Dato
+          rotulo="Crédito Infonavit activo"
+          valor={s.credito_infonavit_activo === null ? "No lo indicó" : s.credito_infonavit_activo ? "Sí" : "No"}
+        />
+        <Dato
+          rotulo="Reportado en Buró"
+          valor={s.esta_en_buro_credito === null ? "No lo indicó" : s.esta_en_buro_credito ? `Sí · ${s.institucion_buro ?? "sin institución"}` : "No"}
+        />
+        <Dato
+          rotulo="Ahorro para vivienda"
+          valor={s.conoce_ahorro_vivienda === null
+            ? "No lo indicó"
+            : s.conoce_ahorro_vivienda
+              ? dinero(s.ahorro_vivienda_aprox ?? 0)
+              : "No lo conoce"}
+          className="col-span-2"
+        />
       </dl>
 
       {s.mensaje && (
@@ -193,22 +206,11 @@ function TarjetaSolicitud({ solicitud: s, asesor }: { solicitud: Lead; asesor?: 
         )}
       </div>
 
-      {/* `mt-auto` pega la acción al pie: en una rejilla las tarjetas
-          tienen alturas distintas y los botones tienen que alinearse. */}
+      {/* La asignación ya ocurrió en la base; aquí sólo se abre la ficha. */}
       <div className="mt-auto flex gap-2 border-t border-hair pt-4">
-        {s.estado === "nuevo" ? (
-          <form action={tomarSolicitud} className="flex-1">
-            <input type="hidden" name="id" value={s.id} />
-            <Boton type="submit" tamano="sm" tono="coral" className="w-full">
-              <Icono nombre="cheque" className="size-4" />
-              Tomar solicitud
-            </Boton>
-          </form>
-        ) : (
-          <BotonEnlace href={`/crm/${s.id}`} tamano="sm" tono="oscuro" className="flex-1">
-            Abrir expediente
-          </BotonEnlace>
-        )}
+        <BotonEnlace href={`/crm/${s.id}`} tamano="sm" tono="oscuro" className="flex-1">
+          Abrir expediente
+        </BotonEnlace>
         <BotonEnlace href={`/crm/${s.id}`} tamano="sm" tono="claro" aria-label="Ver ficha">
           <Icono nombre="ojo" className="size-4" />
         </BotonEnlace>

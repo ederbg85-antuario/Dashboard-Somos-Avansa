@@ -14,7 +14,7 @@ import { dinero, dineroCorto, fecha, numero, porcentaje } from "@/lib/formato";
 import { diasDelRango, resolverPeriodo, variacion } from "@/lib/periodo";
 import { campanas as cargarCampanas, leadsCreados, metricasEnRango, totalizarPauta } from "@/lib/datos";
 import { metaConfigurado } from "@/lib/meta/insights";
-import { exigirSesion } from "@/lib/supabase/sesion";
+import { exigirRol } from "@/lib/supabase/sesion";
 import { BotonSincronizar, CapturaMetrica, NuevaCampana } from "./Formularios";
 
 export const metadata: Metadata = { title: "Marketing" };
@@ -25,10 +25,10 @@ export default async function Marketing({
 }: {
   searchParams: Promise<{ periodo?: string }>;
 }) {
-  const { perfil } = await exigirSesion();
+  const { perfil } = await exigirRol("admin");
   const { periodo } = await searchParams;
   const rango = resolverPeriodo(periodo);
-  const puedeEditar = perfil.rol === "admin" || perfil.rol === "marketing";
+  const puedeEditar = perfil.rol === "admin";
 
   const [metricas, previas, campanas, leads] = await Promise.all([
     metricasEnRango(rango.desde, rango.hasta),

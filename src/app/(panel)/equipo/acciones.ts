@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { clienteServidor } from "@/lib/supabase/servidor";
+import { clienteServicio } from "@/lib/supabase/servicio";
 import { exigirRol } from "@/lib/supabase/sesion";
 import type { RolUsuario } from "@/lib/supabase/tipos";
 
@@ -32,11 +33,31 @@ export async function invitar(datos: FormData): Promise<Resultado> {
     return { ok: false, error: "Escribe un correo válido." };
   }
 
+  if (!(["admin", "asesor"] as RolUsuario[]).includes(rol)) {
+    return { ok: false, error: "El rol no es válido." };
+  }
+
+  let repartoOrden: number | null = null;
+  if (rol === "asesor") {
+    const [{ data: perfiles }, { data: pendientes }] = await Promise.all([
+      supabase.from("perfiles").select("reparto_orden").eq("rol", "asesor"),
+      supabase.from("invitaciones").select("reparto_orden").eq("rol", "asesor").is("usada_en", null),
+    ]);
+    const usados = [...(perfiles ?? []), ...(pendientes ?? [])]
+      .map((fila) => Number(fila.reparto_orden ?? 0));
+    repartoOrden = Math.max(0, ...usados) + 1;
+  }
+
+  const nombre = texto(datos, "nombre", 120);
+  const apellidos = texto(datos, "apellidos", 160);
   const { error } = await supabase.from("invitaciones").upsert(
     {
       email,
-      nombre: texto(datos, "nombre", 120),
+      nombre,
+      apellidos,
       rol,
+      reparto_orden: repartoOrden,
+      recibe_leads: rol === "asesor",
       invitada_por: sesion.usuarioId,
       usada_en: null,
     },
@@ -45,10 +66,27 @@ export async function invitar(datos: FormData): Promise<Resultado> {
 
   if (error) return { ok: false, error: error.message };
 
+  const servicio = clienteServicio();
+  if (!servicio) {
+    revalidatePath("/equipo");
+    return {
+      ok: true,
+      aviso: `${email} quedó preparado, pero falta SUPABASE_SERVICE_ROLE_KEY para enviar el correo.`,
+    };
+  }
+
+  const base = process.env.NEXT_PUBLIC_DASHBOARD_URL?.replace(/\/+$/, "");
+  const { error: errorCorreo } = await servicio.auth.admin.inviteUserByEmail(email, {
+    data: { nombre, apellidos },
+    redirectTo: base ? `${base}/auth/confirm?next=/bienvenida` : undefined,
+  });
+
+  if (errorCorreo) return { ok: false, error: errorCorreo.message };
+
   revalidatePath("/equipo");
   return {
     ok: true,
-    aviso: `${email} ya puede crear su cuenta desde la pantalla de acceso.`,
+    aviso: `Invitación enviada a ${email}.`,
   };
 }
 
@@ -60,12 +98,29 @@ export async function cancelarInvitacion(datos: FormData): Promise<void> {
 }
 
 export async function cambiarRol(datos: FormData): Promise<void> {
-  await exigirRol("admin");
+  const sesion = await exigirRol("admin");
   const supabase = await clienteServidor();
+  if (String(datos.get("id")) === sesion.usuarioId) return;
+  const rol = String(datos.get("rol")) as RolUsuario;
+  if (!(["admin", "asesor"] as RolUsuario[]).includes(rol)) return;
+
+  let repartoOrden: number | null = null;
+  if (rol === "asesor") {
+    const { data: filas } = await supabase
+      .from("perfiles")
+      .select("reparto_orden")
+      .eq("rol", "asesor")
+      .neq("id", String(datos.get("id")));
+    repartoOrden = Math.max(0, ...(filas ?? []).map((f) => Number(f.reparto_orden ?? 0))) + 1;
+  }
 
   await supabase
     .from("perfiles")
-    .update({ rol: String(datos.get("rol")) as RolUsuario })
+    .update({
+      rol,
+      reparto_orden: repartoOrden,
+      recibe_leads: rol === "asesor",
+    })
     .eq("id", String(datos.get("id")));
 
   revalidatePath("/equipo");

@@ -31,6 +31,5 @@ export async function GET() {
     // asesor le confirma que hay trabajo repartido sin enseñarle de quién.
     ocultas: estado.total - estado.filas.length,
     rol: sesion.perfil.rol,
-    yo: sesion.usuarioId,
   });
 }

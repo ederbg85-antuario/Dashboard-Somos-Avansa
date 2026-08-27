@@ -6,8 +6,8 @@ import type {
 /**
  * Vocabulario del sistema: cómo se llama y de qué color es cada cosa.
  *
- * La base guarda claves (`diagnostico`); la pantalla muestra etiquetas
- * (`Diagnóstico`). Ese puente vive aquí y en ningún otro lado, para que
+ * La base conserva claves históricas (`diagnostico`); la pantalla muestra
+ * “Revisión inicial”. Ese puente vive aquí y en ningún otro lado, para que
  * renombrar una etapa sea editar una línea.
  */
 
@@ -25,15 +25,15 @@ export type DefinicionEtapa = {
 };
 
 /**
- * El pipeline calca el proceso que avansa publica en su sitio: diagnóstico →
+ * El pipeline sigue el proceso interno de avansa: revisión inicial →
  * clasificación A/B/C/D → expediente → revisión → trámite. Se agregan `nuevo`
  * y `contactado` al inicio, que es lo que ocurre antes de que exista un
- * diagnóstico, y los dos cierres al final.
+ * revisión del caso, y los dos cierres al final.
  */
 export const ETAPAS: DefinicionEtapa[] = [
-  { clave: "nuevo",       nombre: "Nuevo",         descripcion: "Entró la solicitud. Nadie la ha tomado.",        color: "#6B7785", probabilidad: 5,   enTablero: true },
+  { clave: "nuevo",       nombre: "Nuevo",         descripcion: "Entró el formulario y ya tiene asesor asignado.", color: "#6B7785", probabilidad: 5,   enTablero: true },
   { clave: "contactado",  nombre: "Contactado",    descripcion: "Ya hubo primer contacto por teléfono o WhatsApp.", color: "#0F2D3D", probabilidad: 15,  enTablero: true },
-  { clave: "diagnostico", nombre: "Diagnóstico",   descripcion: "Revisando elegibilidad, saldo y proyecto.",       color: "#FF4D6D", probabilidad: 30,  enTablero: true },
+  { clave: "diagnostico", nombre: "Revisión inicial", descripcion: "Revisando información, saldo y proyecto.",       color: "#FF4D6D", probabilidad: 30,  enTablero: true },
   { clave: "expediente",  nombre: "Expediente",    descripcion: "Integrando identidad, banco, tenencia y obra.",   color: "#D9AE83", probabilidad: 55,  enTablero: true },
   { clave: "revision",    nombre: "Revisión",      descripcion: "Doble validación antes de darlo por listo.",      color: "#2FB6A3", probabilidad: 75,  enTablero: true },
   { clave: "tramite",     nombre: "Trámite",       descripcion: "La persona firma ante Infonavit; nosotros guiamos.", color: "#1E9E8D", probabilidad: 90, enTablero: true },
@@ -235,31 +235,22 @@ export const ROLES: Record<RolUsuario, { nombre: string; descripcion: string; co
   },
   asesor: {
     nombre: "Asesor", color: "#0F2D3D",
-    descripcion: "Trabaja el CRM y los expedientes. No ve finanzas.",
-  },
-  marketing: {
-    nombre: "Marketing", color: "#E63A58",
-    descripcion: "Administra campañas y métricas de pauta. No ve finanzas.",
-  },
-  finanzas: {
-    nombre: "Finanzas", color: "#2FB6A3",
-    descripcion: "Captura movimientos y consulta el estado de resultados.",
+    descripcion: "Trabaja únicamente sus leads, conversaciones y pipeline.",
   },
 };
 
 /** Quién puede entrar a cada módulo. Gobierna el menú y las páginas. */
 export const ACCESO_MODULOS: Record<string, RolUsuario[]> = {
-  resumen:    ["admin", "asesor", "marketing", "finanzas"],
-  solicitudes:["admin", "asesor", "marketing", "finanzas"],
-  // Marketing y finanzas no atienden leads: la bandeja lleva conversaciones
-  // con personas reales y no hay razón para que la vean.
+  resumen:    ["admin", "asesor"],
+  solicitudes:["admin", "asesor"],
   conversaciones:["admin", "asesor"],
-  crm:        ["admin", "asesor", "marketing", "finanzas"],
-  marketing:  ["admin", "asesor", "marketing", "finanzas"],
-  finanzas:   ["admin", "finanzas"],
-  reportes:   ["admin", "finanzas"],
+  crm:        ["admin", "asesor"],
+  marketing:  ["admin"],
+  finanzas:   ["admin"],
+  reportes:   ["admin"],
   equipo:     ["admin"],
-  ajustes:    ["admin", "finanzas"],
+  ajustes:    ["admin"],
+  perfil:     ["admin", "asesor"],
 };
 
 // ---------- estados de la República --------------------------------------

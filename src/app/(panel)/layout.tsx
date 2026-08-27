@@ -2,6 +2,7 @@ import { BarraLateral } from "@/components/panel/BarraLateral";
 import { menuPara } from "@/components/panel/navegacion";
 import { DISCLAIMER } from "@/lib/constantes";
 import { exigirSesion } from "@/lib/supabase/sesion";
+import { clienteServidor } from "@/lib/supabase/servidor";
 
 /**
  * Armazón del panel: barra lateral fija y una sola zona de contenido con su
@@ -12,6 +13,10 @@ import { exigirSesion } from "@/lib/supabase/sesion";
  */
 export default async function LayoutPanel({ children }: { children: React.ReactNode }) {
   const { perfil, email } = await exigirSesion();
+  const supabase = await clienteServidor();
+  const avatarUrl = perfil.avatar_path
+    ? (await supabase.storage.from("avansa-avatars").createSignedUrl(perfil.avatar_path, 3600)).data?.signedUrl ?? null
+    : null;
 
   return (
     <div className="min-h-dvh lg:flex">
@@ -20,6 +25,7 @@ export default async function LayoutPanel({ children }: { children: React.ReactN
         nombre={perfil.nombre}
         email={email}
         rol={perfil.rol}
+        avatarUrl={avatarUrl}
       />
 
       <div className="flex min-w-0 flex-1 flex-col lg:pl-[262px]">

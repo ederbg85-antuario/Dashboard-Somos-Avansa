@@ -30,7 +30,7 @@ export default async function Finanzas({
 }: {
   searchParams: Promise<{ periodo?: string; tipo?: string }>;
 }) {
-  await exigirRol("admin", "finanzas");
+  await exigirRol("admin");
   const { periodo, tipo } = await searchParams;
   // Finanzas abre en mes natural, no en 30 días corridos: una ventana móvil
   // cruza dos quincenas de nómina y un mes de renta contra un ingreso parcial,

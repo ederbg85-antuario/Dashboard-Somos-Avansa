@@ -14,6 +14,7 @@ import { clienteServidor } from "@/lib/supabase/servidor";
 import { exigirSesion } from "@/lib/supabase/sesion";
 import { equipo as cargarEquipo } from "@/lib/datos";
 import type { Actividad, Documento, Lead } from "@/lib/supabase/tipos";
+import { telefonoWhatsAppMexico } from "@/lib/telefono";
 import { MoverEtapa } from "../MoverEtapa";
 import { abrirExpedienteForm, cambiarDocumento } from "../acciones";
 import { FormularioActividad, FormularioFicha } from "./FichaLead";
@@ -30,14 +31,15 @@ export async function generateMetadata({
 }
 
 export default async function Expediente({ params }: { params: Promise<{ id: string }> }) {
-  await exigirSesion();
+  const sesion = await exigirSesion();
   const { id } = await params;
   const supabase = await clienteServidor();
 
-  const [{ data: lead }, { data: actividades }, { data: documentos }, equipo] = await Promise.all([
+  const [{ data: lead }, { data: actividades }, { data: documentos }, { data: nss }, equipo] = await Promise.all([
     supabase.from("leads").select("*").eq("id", id).maybeSingle(),
     supabase.from("actividades").select("*").eq("lead_id", id).order("ocurrio_en", { ascending: false }).limit(60),
     supabase.from("documentos").select("*").eq("lead_id", id).order("grupo").order("created_at"),
+    supabase.rpc("leer_nss", { p_lead_id: id }),
     cargarEquipo(),
   ]);
 
@@ -106,7 +108,7 @@ export default async function Expediente({ params }: { params: Promise<{ id: str
 
           <div className="flex flex-wrap items-center gap-2">
             <a
-              href={`https://wa.me/52${l.telefono.replace(/\D/g, "")}`}
+              href={`https://wa.me/${telefonoWhatsAppMexico(l.telefono)}`}
               target="_blank" rel="noopener noreferrer"
               className="inline-flex h-10 items-center gap-2 rounded-xl bg-teal px-4 text-[0.85rem] font-semibold text-white shadow-tarjeta transition hover:bg-teal-700"
             >
@@ -148,11 +150,41 @@ export default async function Expediente({ params }: { params: Promise<{ id: str
         <div className="space-y-4">
           <Tarjeta>
             <CabezaTarjeta
+              titulo="Información del formulario"
+              apoyo="Datos declarados por la persona. El NSS se descifra únicamente para perfiles autorizados y cada consulta queda auditada."
+            />
+            <dl className="mt-4 grid gap-3 sm:grid-cols-2">
+              <DatoFormulario rotulo="NSS" valor={nss ?? "No disponible"} monoespaciado />
+              <DatoFormulario
+                rotulo="Crédito Infonavit activo"
+                valor={l.credito_infonavit_activo === null ? "No indicado" : l.credito_infonavit_activo ? "Sí" : "No"}
+              />
+              <DatoFormulario
+                rotulo="Buró de Crédito"
+                valor={l.esta_en_buro_credito === null
+                  ? "No indicado"
+                  : l.esta_en_buro_credito
+                    ? `Sí · ${l.institucion_buro ?? "institución no indicada"}`
+                    : "No"}
+              />
+              <DatoFormulario
+                rotulo="Ahorro para vivienda"
+                valor={l.conoce_ahorro_vivienda === null
+                  ? "No indicado"
+                  : l.conoce_ahorro_vivienda
+                    ? dinero(l.ahorro_vivienda_aprox ?? 0)
+                    : "No lo conoce"}
+              />
+            </dl>
+          </Tarjeta>
+
+          <Tarjeta>
+            <CabezaTarjeta
               titulo="Ficha del expediente"
               apoyo="Los datos con los que se decide si el trámite procede."
             />
             <div className="mt-4">
-              <FormularioFicha lead={l} equipo={equipo} />
+              <FormularioFicha lead={l} equipo={equipo} esAdmin={sesion.perfil.rol === "admin"} />
             </div>
           </Tarjeta>
 
@@ -307,6 +339,27 @@ export default async function Expediente({ params }: { params: Promise<{ id: str
         </div>
       </div>
     </>
+  );
+}
+
+function DatoFormulario({
+  rotulo,
+  valor,
+  monoespaciado = false,
+}: {
+  rotulo: string;
+  valor: string;
+  monoespaciado?: boolean;
+}) {
+  return (
+    <div className="rounded-xl bg-mist px-3.5 py-3">
+      <dt className="text-[0.68rem] font-semibold uppercase tracking-[0.08em] text-slate-400">
+        {rotulo}
+      </dt>
+      <dd className={`mt-1 text-[0.86rem] font-semibold text-ink ${monoespaciado ? "font-mono tracking-[0.12em]" : ""}`}>
+        {valor}
+      </dd>
+    </div>
   );
 }
 

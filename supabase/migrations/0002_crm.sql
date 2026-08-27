@@ -2,7 +2,7 @@
 -- avansa · Sistema Integral — 0002 · CRM
 -- ============================================================
 -- `leads` es la tabla que también escribe el sitio público desde
--- `/api/leads`. Las columnas de contacto y diagnóstico conservan
+-- `/api/leads`. Las columnas de contacto e información declarada conservan
 -- exactamente el nombre que el sitio ya envía (ver web/src/lib/supabase/
 -- types.ts); todo lo demás son columnas internas con valor por defecto,
 -- así que el sitio inserta sin cambiar una línea de código.
@@ -48,7 +48,7 @@ create table if not exists public.leads (
   email                 text check (email is null or email ~* '^[^@\s]+@[^@\s]+\.[^@\s]{2,}$'),
   estado_republica      text,
 
-  -- diagnóstico declarado
+  -- información declarada
   -- avansa nunca consulta Infonavit ni almacena credenciales de Mi Cuenta:
   -- este saldo es el que la persona dice tener.
   saldo_subcuenta       numeric(12,2) check (saldo_subcuenta is null or saldo_subcuenta >= 0),
@@ -83,7 +83,7 @@ create table if not exists public.leads (
 );
 
 comment on table public.leads is
-  'Solicitudes de diagnóstico. Contiene datos personales: acceso sólo para el equipo autenticado.';
+  'Formularios y contactos. Contiene datos personales: acceso sólo para el equipo autenticado.';
 comment on column public.leads.saldo_subcuenta is
   'Saldo declarado por la persona. Nunca proviene de una consulta a Infonavit.';
 comment on column public.leads.es_demo is

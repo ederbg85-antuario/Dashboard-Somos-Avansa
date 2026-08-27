@@ -54,6 +54,12 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
 export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const p = await permiso(ctx.params);
   if (p.error) return p.error;
+  if (p.sesion.perfil.rol !== "asesor") {
+    return NextResponse.json(
+      { error: "Los administradores tienen acceso de supervisión, no de respuesta." },
+      { status: 403 },
+    );
+  }
 
   let cuerpo: { texto?: unknown };
   try {
@@ -72,20 +78,6 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   }
 
   const supabase = await clienteServidor();
-
-  // Responder una conversación libre la deja a tu nombre, y se hace **antes**
-  // de enviar: es lo que evita que dos personas le escriban a la vez a la
-  // misma. El `is null` hace que gane quien llegue primero — al segundo no le
-  // toca ninguna fila y sigue de largo sin robar la conversación.
-  await supabase
-    .from("conversaciones")
-    .update({
-      asignado_a: p.sesion.usuarioId,
-      asignado_en: new Date().toISOString(),
-      asignado_por: p.sesion.usuarioId,
-    })
-    .eq("id", p.conversacion)
-    .is("asignado_a", null);
 
   let enviado;
   try {

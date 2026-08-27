@@ -85,26 +85,27 @@ export async function actualizarLead(datos: FormData): Promise<Resultado> {
   const clasificacion = texto(datos, "clasificacion") as LeadClasificacion | null;
   const asesor = texto(datos, "asesor_id");
 
+  const cambios = {
+    nombre: texto(datos, "nombre", 120) ?? undefined,
+    telefono: texto(datos, "telefono", 30) ?? undefined,
+    email: texto(datos, "email", 160),
+    estado_republica: texto(datos, "estado_republica", 60),
+    tipo_mejora: texto(datos, "tipo_mejora", 80),
+    saldo_subcuenta: numeroOpcional(datos, "saldo_subcuenta"),
+    vivienda_a_su_nombre:
+      datos.get("vivienda_a_su_nombre") === "si" ? true
+      : datos.get("vivienda_a_su_nombre") === "no" ? false : null,
+    clasificacion,
+    valor_estimado: numeroOpcional(datos, "valor_estimado"),
+    proxima_accion: texto(datos, "proxima_accion", 160),
+    fecha_proxima_accion: texto(datos, "fecha_proxima_accion", 10),
+    notas_internas: texto(datos, "notas_internas", 4000),
+    ...(sesion.perfil.rol === "admin" ? { asesor_id: asesor } : {}),
+  };
+
   const { error } = await supabase
     .from("leads")
-    .update({
-      nombre: texto(datos, "nombre", 120) ?? undefined,
-      telefono: texto(datos, "telefono", 30) ?? undefined,
-      email: texto(datos, "email", 160),
-      estado_republica: texto(datos, "estado_republica", 60),
-      tipo_mejora: texto(datos, "tipo_mejora", 80),
-      saldo_subcuenta: numeroOpcional(datos, "saldo_subcuenta"),
-      vivienda_a_su_nombre:
-        datos.get("vivienda_a_su_nombre") === "si" ? true
-        : datos.get("vivienda_a_su_nombre") === "no" ? false : null,
-      clasificacion,
-      // Cadena vacía = «sin asignar»; `null` en la base, no la cadena "".
-      asesor_id: asesor,
-      valor_estimado: numeroOpcional(datos, "valor_estimado"),
-      proxima_accion: texto(datos, "proxima_accion", 160),
-      fecha_proxima_accion: texto(datos, "fecha_proxima_accion", 10),
-      notas_internas: texto(datos, "notas_internas", 4000),
-    })
+    .update(cambios)
     .eq("id", id);
 
   if (error) return { ok: false, error: error.message };
@@ -197,7 +198,7 @@ export async function cambiarDocumento(datos: FormData): Promise<void> {
 
 /** Para el lead que llega por teléfono o recomendación, no por el sitio. */
 export async function crearLead(datos: FormData): Promise<Resultado> {
-  const sesion = await exigirSesion();
+  await exigirSesion();
   const supabase = await clienteServidor();
 
   const nombre = texto(datos, "nombre", 120);
@@ -208,25 +209,17 @@ export async function crearLead(datos: FormData): Promise<Resultado> {
     return { ok: false, error: "El teléfono necesita 10 dígitos." };
   }
 
-  const { error } = await supabase
-    .from("leads")
-    .insert({
-      nombre,
-      telefono,
-      email: texto(datos, "email", 160),
-      estado_republica: texto(datos, "estado_republica", 60),
-      saldo_subcuenta: numeroOpcional(datos, "saldo_subcuenta"),
-      tipo_mejora: texto(datos, "tipo_mejora", 80),
-      mensaje: texto(datos, "mensaje", 1200),
-      // El consentimiento es una restricción de la base: sin él no puede
-      // existir el registro. Quien da de alta a mano declara haberlo obtenido.
-      acepta_privacidad: true,
-      origen: texto(datos, "origen", 60) ?? "captura-manual",
-      canal: texto(datos, "canal", 60),
-      asesor_id: sesion.usuarioId,
-      estado: "contactado",
-      probabilidad: ETAPA.contactado.probabilidad,
-    });
+  const { error } = await supabase.rpc("registrar_lead_manual", {
+    p_nombre: nombre,
+    p_telefono: telefono,
+    p_email: texto(datos, "email", 160),
+    p_estado_republica: texto(datos, "estado_republica", 60),
+    p_saldo_subcuenta: numeroOpcional(datos, "saldo_subcuenta"),
+    p_tipo_mejora: texto(datos, "tipo_mejora", 80),
+    p_mensaje: texto(datos, "mensaje", 1200),
+    p_origen: texto(datos, "origen", 60) ?? "captura-manual",
+    p_canal: texto(datos, "canal", 60),
+  });
 
   if (error) return { ok: false, error: error.message };
 

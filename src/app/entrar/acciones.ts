@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { clienteServidor } from "@/lib/supabase/servidor";
+import { rutaInterna } from "@/lib/ruta-interna";
 
 export type EstadoAcceso = { error?: string; aviso?: string };
 
@@ -37,37 +38,5 @@ export async function entrar(_previo: EstadoAcceso, datos: FormData): Promise<Es
 
   // `redirect` lanza para cortar la ejecución: tiene que quedar fuera de
   // cualquier try/catch o se traga la redirección.
-  redirect(destino.startsWith("/") ? destino : "/");
-}
-
-/**
- * Alta de cuenta. La base decide si procede: sin invitación vigente, el
- * trigger `crear_perfil_para_usuario` aborta la inserción y Supabase devuelve
- * el error. La primera cuenta del sistema siempre pasa, y queda como admin.
- */
-export async function registrarse(_previo: EstadoAcceso, datos: FormData): Promise<EstadoAcceso> {
-  const nombre = leer(datos, "nombre");
-  const email = leer(datos, "email").toLowerCase();
-  const password = leer(datos, "password");
-
-  if (!nombre || nombre.length < 2) return { error: "Escribe tu nombre completo." };
-  if (!email) return { error: "Escribe tu correo." };
-  if (password.length < 8) return { error: "La contraseña necesita al menos 8 caracteres." };
-
-  const supabase = await clienteServidor();
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: { data: { nombre } },
-  });
-
-  if (error) return { error: traducir(error.message) };
-
-  // Con confirmación de correo activada, Supabase crea el usuario pero no
-  // abre sesión: hay que avisar en vez de dejar la pantalla en blanco.
-  if (!data.session) {
-    return { aviso: `Cuenta creada. Te enviamos un correo a ${email} para confirmarla; ábrelo y vuelve a entrar.` };
-  }
-
-  redirect("/");
+  redirect(rutaInterna(destino, "/"));
 }

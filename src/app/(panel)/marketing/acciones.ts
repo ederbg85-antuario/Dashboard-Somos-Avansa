@@ -24,7 +24,7 @@ function refrescar() {
 // ---------- campañas ------------------------------------------------------
 
 export async function guardarCampana(datos: FormData): Promise<Resultado> {
-  await exigirRol("admin", "marketing");
+  await exigirRol("admin");
   const supabase = await clienteServidor();
 
   const nombre = texto(datos, "nombre", 160);
@@ -70,7 +70,7 @@ export async function guardarCampana(datos: FormData): Promise<Resultado> {
  * cifras con 24 horas de retraso.
  */
 export async function guardarMetrica(datos: FormData): Promise<Resultado> {
-  await exigirRol("admin", "marketing");
+  await exigirRol("admin");
   const supabase = await clienteServidor();
 
   const campana_id = texto(datos, "campana_id", 40);
@@ -106,7 +106,7 @@ export async function guardarMetrica(datos: FormData): Promise<Resultado> {
  * campaña deja de reportar, sus datos históricos se quedan.
  */
 export async function sincronizarConMeta(dias = 30): Promise<Resultado> {
-  await exigirRol("admin", "marketing");
+  await exigirRol("admin");
 
   if (!metaConfigurado()) {
     return {

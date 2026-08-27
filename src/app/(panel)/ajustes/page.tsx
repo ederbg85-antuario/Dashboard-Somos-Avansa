@@ -16,7 +16,7 @@ export const metadata: Metadata = { title: "Ajustes" };
 export const dynamic = "force-dynamic";
 
 export default async function Ajustes() {
-  const { perfil } = await exigirRol("admin", "finanzas");
+  await exigirRol("admin");
   const supabase = await clienteServidor();
 
   const [categorias, { data: metas }, { count: demos }] = await Promise.all([
@@ -139,15 +139,13 @@ export default async function Ajustes() {
             <div className="mt-4"><NuevaCategoria /></div>
           </Tarjeta>
 
-          {perfil.rol === "admin" && (
-            <Tarjeta>
-              <CabezaTarjeta
-                titulo="Datos de demostración"
-                apoyo="Contenido de ejemplo para recorrer el sistema antes de operar."
-              />
-              <div className="mt-4"><BorrarDemo cuantos={demos ?? 0} /></div>
-            </Tarjeta>
-          )}
+          <Tarjeta>
+            <CabezaTarjeta
+              titulo="Datos de demostración"
+              apoyo="Contenido de ejemplo para recorrer el sistema antes de operar."
+            />
+            <div className="mt-4"><BorrarDemo cuantos={demos ?? 0} /></div>
+          </Tarjeta>
         </div>
       </div>
     </>

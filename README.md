@@ -1,8 +1,8 @@
 # avansa · Sistema Integral
 
-Sistema interno de **avansa · Gestión Patrimonial**: CRM de expedientes,
-desempeño de la pauta de Meta y panel financiero, sobre una sola base de datos
-compartida con el sitio público.
+Sistema interno de **avansa · Gestión Patrimonial**. Reúne las solicitudes del
+sitio público, el CRM, la bandeja de WhatsApp, el desempeño de Meta Ads y el
+control financiero sobre el mismo proyecto de Supabase.
 
 > **Aviso permanente.** El trámite ante Infonavit es gratuito y cualquier
 > persona puede realizarlo por su cuenta. avansa es una empresa privada e
@@ -13,21 +13,17 @@ compartida con el sitio público.
 
 ## Qué resuelve
 
-Cuatro cosas que normalmente viven en cuatro herramientas distintas, aquí
-conectadas por los mismos datos:
+| Módulo | Qué hace | Quién lo ve |
+|---|---|---|
+| **Solicitudes** | Recibe el formulario de somosavansa.com y conserva su atribución. | Cada asesor ve las suyas; administración ve todas. |
+| **CRM** | Pipeline, clasificación, actividades y expediente documental de cada lead. | Cada asesor trabaja sólo su cartera; administración ve el conjunto. |
+| **Conversaciones** | Refleja la bandeja de WhatsApp conectada mediante Chatwoot. | Cada asesor responde sólo sus conversaciones; administración puede supervisarlas todas en modo lectura. |
+| **Marketing** | Campañas de Meta, métricas diarias y costo por solicitud contra el CRM. | Sólo administración. |
+| **Finanzas y reportes** | Ingresos, egresos, plan de cuentas y estado de resultados. | Sólo administración. |
+| **Equipo y perfil** | Invitaciones, acceso, reparto y datos personales del equipo. | Administración gestiona el equipo; cada persona edita su perfil. |
 
-| Módulo | Qué hace |
-|---|---|
-| **Solicitudes** | Bandeja de lo que llega del formulario de somosavansa.com. Un clic la convierte en expediente. |
-| **CRM** | Pipeline de siete etapas con clasificación A/B/C/D, expediente documental y bitácora de cada contacto. |
-| **Marketing** | Campañas de Meta con su métrica diaria; costo por solicitud calculado contra el CRM, no contra lo que reporta la plataforma. |
-| **Finanzas** | Ingresos y egresos con plan de cuentas, y la cascada completa: margen bruto → EBITDA → utilidad neta. |
-
-La conexión entre módulos es el punto: un ingreso se liga al expediente que lo
-generó, un expediente a la campaña que lo trajo, y la campaña a lo que costó.
-Por eso el sistema puede responder *cuánto costó traer al cliente que dejó este
-margen*, que es la pregunta que ninguna de las cuatro herramientas por separado
-contesta.
+La relación entre lead, campaña, conversación, actividades y movimientos evita
+que cada módulo tenga una versión distinta de la misma persona.
 
 ---
 
@@ -35,180 +31,256 @@ contesta.
 
 ```bash
 npm install
-cp .env.example .env.local   # y llena NEXT_PUBLIC_SUPABASE_ANON_KEY
-npm run dev                  # http://localhost:3100
+cp .env.example .env.local
+npm run dev
 ```
 
-La primera persona que se registre queda como **administradora**. A partir de
-ahí, el alta es sólo por invitación desde el módulo de Equipo.
+El dashboard abre en `http://localhost:3100`. No existe auto-registro ni un
+flujo de “primer administrador”: toda cuenta necesita una invitación vigente
+creada por un administrador.
+
+Las variables mínimas son:
+
+```dotenv
+NEXT_PUBLIC_SUPABASE_URL=https://vbvycgwxhsoaqionyrgc.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+NEXT_PUBLIC_DASHBOARD_URL=http://localhost:3100
+SUPABASE_SERVICE_ROLE_KEY=...
+TZ=America/Mexico_City
+```
+
+`SUPABASE_SERVICE_ROLE_KEY` es exclusivamente de servidor. Nunca debe llevar el
+prefijo `NEXT_PUBLIC_`, aparecer en componentes cliente ni enviarse al
+navegador.
+
+---
+
+## Acceso e invitaciones
+
+El alta es cerrada y sigue este flujo:
+
+1. Un administrador captura nombre, apellidos, correo y rol en **Equipo**.
+2. El servidor registra la invitación y, con `SUPABASE_SERVICE_ROLE_KEY`, llama
+   a Supabase Auth para enviar el correo.
+3. El enlace vuelve por `/auth/confirm` y lleva a `/bienvenida`.
+4. La persona establece su contraseña y completa nombre, apellidos y teléfono.
+5. El trigger de Auth acepta la cuenta sólo si el correo tiene una invitación
+   vigente; el rol procede de esa invitación, nunca de metadatos enviados por
+   el navegador.
+
+La plantilla brandeada del correo está en `supabase/templates/invite.html` y se
+debe copiar en **Supabase → Authentication → Email Templates → Invite user**.
+El remitente de producción debe configurarse con SMTP propio para evitar los
+límites del remitente de prueba de Supabase.
+
+Desde **Mi perfil**, cada persona puede actualizar nombre, apellidos, teléfono
+y foto. Los avatares viven en el bucket privado `avansa-avatars`; se entregan
+con URL firmada y cada archivo queda dentro de la carpeta del usuario.
+
+---
+
+## Roles y privacidad
+
+Sólo existen dos perfiles operativos:
+
+| Rol | Alcance |
+|---|---|
+| **Administrador** | Ve todos los leads, pipelines, formularios y conversaciones; gestiona equipo, marketing, finanzas y ajustes. En la bandeja de mensajes supervisa, pero no responde. |
+| **Asesor** | Ve y trabaja únicamente los leads, documentos, actividades, pipeline y conversaciones que tiene asignados. No puede consultar la cartera de otro asesor ni los módulos corporativos. |
+
+La separación no depende del menú. Postgres aplica RLS a perfiles, leads,
+actividades, documentos, conversaciones, respuestas y módulos corporativos;
+además, los privilegios de columna impiden escrituras directas sobre campos
+sensibles o de asignación. Un administrador no puede darse de baja a sí mismo
+ni eliminar al último administrador.
+
+### Reparto uno a uno
+
+El formulario web y las conversaciones nuevas de WhatsApp comparten un
+round-robin global y atómico. Sólo participan asesores activos con
+`recibe_leads = true`, ordenados por `reparto_orden`; los administradores nunca
+entran al reparto.
+
+El turno se decide dentro de la misma transacción que crea el lead, por lo que
+dos solicitudes simultáneas no pueden caer por accidente al mismo asesor. Si
+el teléfono ya pertenece a un lead, se conserva su asesor y no se consume un
+turno nuevo. La conversación de Chatwoot queda enlazada al lead que actúa como
+fuente canónica de la asignación.
+
+---
+
+## Formulario del sitio público
+
+El sitio (`../web`) y el dashboard comparten el proyecto de Supabase. El único
+formulario público solicita:
+
+- nombre, correo y teléfono/WhatsApp;
+- NSS;
+- si tiene crédito Infonavit activo;
+- si está en buró de crédito y, cuando aplica, con qué institución;
+- si conoce su ahorro para vivienda y, cuando aplica, su monto aproximado.
+
+El navegador envía los datos a una ruta de servidor del sitio. Esa ruta valida
+el contenido y llama con `SUPABASE_SERVICE_ROLE_KEY` a
+`registrar_formulario_web`; `anon` no tiene permiso de ejecución. La función
+aplica límite de frecuencia sin guardar la IP en claro, evita duplicados y
+ejecuta el reparto antes de responder.
+
+El NSS no se guarda en `public`: se cifra con Vault, sólo se puede leer mediante
+`leer_nss` después de comprobar permisos y cada lectura queda auditada. Los
+eventos de analítica no incluyen NSS, respuestas financieras ni otros datos
+sensibles.
+
+Las vistas normales del dashboard **no** usan la llave de servicio: trabajan
+con la sesión de la persona y quedan sujetas a RLS.
+
+---
+
+## WhatsApp y Chatwoot
+
+La integración está preparada con esta ruta:
+
+```text
+WhatsApp Cloud API (Meta) → Chatwoot → webhook del dashboard → Supabase → bandeja/CRM
+```
+
+Chatwoot recibe los mensajes del número oficial. Su webhook de cuenta llama a:
+
+```text
+POST /api/webhooks/chatwoot
+```
+
+El endpoint acepta `conversation_created` y `message_created`, verifica sobre
+el cuerpo crudo la firma `X-Chatwoot-Signature` y el timestamp contra el
+secreto que entrega Chatwoot, ignora cualquier bandeja distinta de
+`CHATWOOT_BANDEJA_ID` y usa la llave de servicio sólo en el servidor para
+registrar y repartir la conversación. La pantalla consulta
+`/api/conversaciones`, que devuelve desde el servidor únicamente las filas
+permitidas para la sesión actual.
+
+Variables requeridas:
+
+```dotenv
+CHATWOOT_URL=https://chat.antuario.mx
+CHATWOOT_TOKEN=...
+CHATWOOT_CUENTA_ID=3
+CHATWOOT_BANDEJA_ID=4
+CHATWOOT_WEBHOOK_SECRET=...
+SUPABASE_SERVICE_ROLE_KEY=...
+```
+
+`CHATWOOT_TOKEN` debe pertenecer a un agente técnico dedicado de la cuenta de
+avansa, no a un bot ni al usuario personal de un administrador. Todas estas
+variables son privadas de servidor.
+
+Al conectar el número definitivo en Meta Developers hay que crear o seleccionar
+la bandeja de WhatsApp correspondiente en Chatwoot, actualizar
+`CHATWOOT_BANDEJA_ID`, registrar el webhook y verificar un mensaje entrante de
+extremo a extremo. El alta y el código de verificación del número se completan
+cuando el número esté disponible.
 
 ---
 
 ## Arquitectura
 
-```
+```text
 src/
   app/
-    entrar/            acceso y alta de la primera cuenta
-    (panel)/           todo lo que exige sesión
-      page.tsx           Resumen
-      solicitudes/       bandeja del sitio web
-      crm/               tablero, lista, ficha y alta manual
-      marketing/         campañas y métricas de Meta
-      finanzas/          movimientos y captura
-      reportes/          estado de resultados
-      equipo/            personas, roles e invitaciones
-      ajustes/           plan de cuentas, metas y conexiones
+    entrar/                 acceso, sin auto-registro
+    auth/confirm/           canje del enlace de invitación
+    bienvenida/             contraseña y perfil inicial
+    (panel)/
+      solicitudes/          formulario web
+      crm/                   pipeline, lista, ficha y alta manual
+      conversaciones/       bandeja de WhatsApp
+      marketing/             campañas y métricas de Meta
+      finanzas/              movimientos y captura
+      reportes/              estado de resultados
+      equipo/                roles, acceso e invitaciones
+      perfil/                datos personales y avatar
+      ajustes/               catálogos, metas y conexiones
+    api/
+      conversaciones/       lectura filtrada de la bandeja
+      webhooks/chatwoot/     entrada autenticada desde Chatwoot
   components/
-    ui/                tarjetas, campos, tabla, insignias, iconos
-    graficas/           línea, barras, dona, embudo y cascada — SVG puro
-    panel/             barra lateral, encabezado, selector de periodo
+    ui/                      controles compartidos
+    graficas/                visualizaciones SVG
+    panel/                   navegación y estructura del panel
   lib/
-    finanzas.ts        la cascada del estado de resultados
-    constantes.ts      etapas, clasificaciones, roles, plan de cuentas
-    periodo.ts         rangos y su comparativo
-    formato.ts         dinero, fechas y porcentajes en es-MX
-    datos.ts           consultas compartidas
-    meta/insights.ts   cliente de la Marketing API de Meta
-  proxy.ts             refresca la sesión y cierra el panel
-supabase/migrations/   el esquema, en orden
+    supabase/                clientes público, servidor y de servicio
+    chatwoot/                cliente privado de Chatwoot
+    meta/                    cliente privado de Meta Ads
+supabase/
+  migrations/               esquema, RLS, RPC y reparto
+  templates/invite.html      correo de invitación brandeado
 ```
 
-### Decisiones que conviene conocer
+### Límites de la llave de servicio
 
-**Las gráficas no usan librería.** Son SVG generado en el servidor. Pesan lo
-que pesan sus datos, se pintan con el primer HTML y heredan la paleta de la
-marca sin pelearse con los temas de nadie. El *tooltip* es un `<title>` nativo:
-lo lee también un lector de pantalla.
+La llave de servicio se usa únicamente en puntos de integración que no tienen
+una sesión humana:
 
-**La cascada financiera se define una sola vez**, en `lib/finanzas.ts`. El
-tablero, el módulo de finanzas y el reporte llaman a la misma función. La vista
-`v_estado_resultados_mensual` de Postgres es su espejo en SQL para
-exportaciones y auditoría — pero la aplicación nunca la usa para pintar, para
-que no puedan existir dos verdades sobre el mismo mes.
+- envío de invitaciones desde una acción de servidor;
+- recepción del webhook de Chatwoot;
+- recepción del formulario público desde el servidor web.
 
-**La depreciación va debajo del EBITDA.** No es salida de efectivo, y sumarla
-arriba haría que el EBITDA dejara de ser EBITDA.
-
-**El embudo se calcula con `etapa_maxima`, no con la etapa actual.** Un
-expediente descartado salió en algún punto del recorrido; si se cuenta sólo por
-etapa actual, esa caída desaparece y salen conversiones mayores al 100 %.
-
-**La autorización vive en la base, no en la interfaz.** El panel usa la clave
-pública y la sesión de cada persona: todo lo que puede leer o escribir lo
-deciden las políticas RLS. Ocultar un módulo del menú es cosmética; lo que de
-verdad cierra la puerta es que Finanzas devuelva cero filas a un asesor.
-
-**El panel no usa `service_role`.** Ni el sitio tampoco: escribe a través de
-`registrar_lead`, una función que valida y escribe exactamente una fila. Una
-llave que puede leer y borrar la base entera no tiene nada que hacer en un
-servidor expuesto a internet.
+En esos casos sólo se llaman RPC o APIs administrativas de alcance acotado. El
+resto del dashboard usa la clave pública, la sesión del usuario y RLS. La llave
+de servicio tampoco autoriza a exponer secretos de Chatwoot o Meta al cliente.
 
 ---
 
-## Roles
+## Meta Ads
 
-| Rol | Alcance |
-|---|---|
-| **Administrador** | Todo, incluidas finanzas y la administración del equipo. |
-| **Asesor** | CRM, expedientes y solicitudes. No ve finanzas. |
-| **Marketing** | Campañas y métricas de pauta. No ve finanzas. |
-| **Finanzas** | Movimientos, estado de resultados y catálogos. |
+El módulo de Marketing permite captura manual. Para sincronizar métricas define
+en el entorno del servidor:
 
-El rol se cambia desde **Equipo**, y el cambio surte efecto en la base
-inmediatamente. Nadie puede ascenderse a sí mismo: un trigger lo impide.
-
----
-
-## Alta de personas
-
-El panel no puede crear usuarios de autenticación —eso exige la clave de
-servicio— así que el flujo es por invitación:
-
-1. Un administrador captura el correo y el rol en **Equipo → Invitar**.
-2. Esa persona entra a la pantalla de acceso y elige *Crear mi cuenta*.
-3. El trigger de la base lee la invitación, le asigna el rol y la marca usada.
-
-Sin invitación vigente, el alta se rechaza **en la base**, no en el formulario.
-
----
-
-## Conexión con el sitio público
-
-El sitio (`../web`) y este panel comparten proyecto de Supabase. El formulario
-del sitio llama a `registrar_lead`, que escribe en `public.leads`; la solicitud
-aparece en la bandeja del panel en segundos. Para que funcione, el sitio sólo
-necesita:
-
-```
-NEXT_PUBLIC_SUPABASE_URL=https://vbvycgwxhsoaqionyrgc.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+```dotenv
+META_ACCESS_TOKEN=...       # token de sistema con ads_read
+META_AD_ACCOUNT_ID=...      # con o sin el prefijo act_
+META_API_VERSION=v23.0      # opcional
 ```
 
----
-
-## Conexión con Meta Ads
-
-El módulo de Marketing funciona desde el día uno con captura manual. Para que
-se sincronice solo, define en el entorno del despliegue:
-
-```
-META_ACCESS_TOKEN=...        # token de sistema con ads_read
-META_AD_ACCOUNT_ID=...       # con o sin el prefijo act_
-META_API_VERSION=v23.0       # opcional
-```
-
-Con eso, el botón **Sincronizar con Meta** trae impresiones, alcance, clics,
-gasto y leads por campaña y día. La escritura es *upsert* sobre
-`(campaña, fecha)`: reimportar un rango corrige los datos en vez de
-duplicarlos, que es justo lo que hace falta cuando Meta ajusta cifras con un
-día de retraso.
+**Sincronizar con Meta** importa impresiones, alcance, clics, gasto y leads por
+campaña y día. La escritura es `upsert` sobre campaña y fecha para corregir
+cifras posteriores sin duplicarlas.
 
 ---
 
 ## Base de datos
 
-Las migraciones están en `supabase/migrations/`, numeradas y en orden. Se
-aplican desde el SQL Editor de Supabase o con `supabase db push`.
+Las migraciones viven en `supabase/migrations/`. Las primeras crean el dominio
+base; las más recientes endurecen permisos y completan la operación actual:
 
-| Archivo | Contenido |
+| Migración | Contenido |
 |---|---|
-| `0001` | Perfiles, roles y helpers de autorización |
-| `0002` | Leads, actividades y expediente documental |
-| `0003` | Campañas y métricas de pauta |
-| `0004` | Plan de cuentas, movimientos y metas |
-| `0005` | Vistas de tablero y estado de resultados |
-| `0006` | Catálogo inicial de cuentas |
-| `0007` | Invitaciones |
-| `0008` | `etapa_maxima` y vista del embudo |
-| `0009` | `registrar_lead`, la puerta del sitio público |
+| `0001`–`0009` | Perfiles, CRM, marketing, finanzas, vistas, invitaciones y entrada inicial del sitio. |
+| `0010` | Cierre de la superficie de funciones heredadas. |
+| `0011` | Bandeja y conversaciones. |
+| `20260827211020` | Sólo admin/asesor, invitación obligatoria, perfiles, NSS cifrado, formulario actual, reparto global y RLS por asesor. |
+| `20260827221500` | Ajustes posteriores de privilegios, políticas e índices. |
 
-### Datos de demostración
-
-El sistema viene con expedientes, campañas y movimientos de ejemplo para poder
-recorrerlo con contenido. Todos llevan `es_demo = true`. Se borran de un golpe
-desde **Ajustes → Datos de demostración**; lo que capture el equipo nunca lleva
-esa marca, así que ese botón no puede llevarse datos reales por delante.
+Antes de aplicar migraciones con la CLI, compara el historial local con
+`supabase_migrations.schema_migrations`; no renombres ni reapliques versiones
+que ya estén registradas en el proyecto remoto.
 
 ---
 
-## Pendientes que no puedo dejar hechos
+## Ajustes operativos de Supabase
 
-Dos ajustes viven en la consola de Supabase y necesitan tu sesión:
+En producción deben quedar configurados:
 
-1. **Protección contra contraseñas filtradas.** *Authentication → Policies →
-   Password protection*. Supabase compara la contraseña contra la base de
-   HaveIBeenPwned y rechaza las que ya se filtraron. Un panel con datos
-   personales debería tenerla encendida.
-2. **Confirmación de correo.** Si está activa, cada persona invitada tiene que
-   abrir el correo antes de poder entrar. Es lo recomendable; sólo conviene
-   revisar que los correos salgan (Supabase trae un remitente de pruebas con
-   límite bajo — para operar de verdad hay que configurar un SMTP propio).
+- la plantilla `supabase/templates/invite.html`, su asunto y el SMTP de avansa;
+- la URL del dashboard y sus redirects autorizados;
+- confirmación de correo para invitaciones;
+- protección contra contraseñas filtradas en Authentication;
+- `SUPABASE_SERVICE_ROLE_KEY` sólo en los entornos privados del dashboard y del
+  sitio público.
 
 ---
 
 ## Zona horaria
 
-El despliegue fija `TZ=America/Mexico_City`. Sin eso, el contenedor arranca en
-UTC y una solicitud recibida a las 20:00 en México aparece con fecha del día
-siguiente. Todo el cálculo de rangos y comparativos depende de esto.
+El despliegue fija `TZ=America/Mexico_City`. Sin esa variable, el proceso puede
+arrancar en UTC y una solicitud nocturna en México aparecer con la fecha del día
+siguiente; los rangos y comparativos del tablero dependen de esta configuración.

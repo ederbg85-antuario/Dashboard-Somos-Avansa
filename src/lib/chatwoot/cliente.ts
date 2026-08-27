@@ -68,13 +68,32 @@ async function pedir<T>(ruta: string, init?: RequestInit): Promise<T> {
  * por hacer y llenaría la lista de ruido.
  */
 export async function conversaciones(): Promise<ConversacionCW[]> {
-  const busca = new URLSearchParams({ status: "open", sort_by: "last_activity_at" });
-  if (bandejaId) busca.set("inbox_id", String(bandejaId));
+  async function porEstado(status: "open" | "pending") {
+    const acumuladas: ConversacionCW[] = [];
 
-  const r = await pedir<{ data?: { payload?: ConversacionCW[] } }>(
-    `/conversations?${busca}`,
-  );
-  return r.data?.payload ?? [];
+    // Chatwoot entrega 25 por página. El límite de 20 páginas evita que una
+    // configuración errónea convierta cada refresco en un recorrido infinito.
+    for (let pagina = 1; pagina <= 20; pagina += 1) {
+      const busca = new URLSearchParams({
+        status,
+        sort_by: "last_activity_at",
+        page: String(pagina),
+      });
+      if (bandejaId) busca.set("inbox_id", String(bandejaId));
+
+      const r = await pedir<{ data?: { payload?: ConversacionCW[] } }>(
+        `/conversations?${busca}`,
+      );
+      const lote = r.data?.payload ?? [];
+      acumuladas.push(...lote);
+      if (lote.length < 25) break;
+    }
+
+    return acumuladas;
+  }
+
+  const juntas = (await Promise.all([porEstado("open"), porEstado("pending")])).flat();
+  return [...new Map(juntas.map((conversacion) => [conversacion.id, conversacion])).values()];
 }
 
 /** Mensajes de una conversación, del más viejo al más nuevo. */

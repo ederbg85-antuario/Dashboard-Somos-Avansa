@@ -13,7 +13,7 @@
 
 // ---------- enums ---------------------------------------------------------
 
-export type RolUsuario = "admin" | "asesor" | "marketing" | "finanzas";
+export type RolUsuario = "admin" | "asesor";
 
 export type LeadEstado =
   | "nuevo"
@@ -55,10 +55,15 @@ export type EstatusMovimiento = "pagado" | "pendiente" | "cancelado";
 export type Perfil = {
   id: string;
   nombre: string;
+  apellidos: string;
   email: string;
   telefono: string | null;
   rol: RolUsuario;
   activo: boolean;
+  avatar_path: string | null;
+  reparto_orden: number | null;
+  recibe_leads: boolean;
+  perfil_completo: boolean;
   created_at: string;
   updated_at: string;
 };
@@ -68,6 +73,16 @@ export type Lead = {
   nombre: string;
   telefono: string;
   email: string | null;
+  submission_id: string | null;
+  telefono_normalizado: string | null;
+  credito_infonavit_activo: boolean | null;
+  esta_en_buro_credito: boolean | null;
+  institucion_buro: string | null;
+  conoce_ahorro_vivienda: boolean | null;
+  ahorro_vivienda_aprox: number | null;
+  base_tratamiento: "consentimiento_web" | "contacto_iniciado_whatsapp" | "captura_interna";
+  aviso_privacidad_version: string | null;
+  consentido_en: string | null;
   estado_republica: string | null;
   /** Saldo *declarado* por la persona; avansa nunca consulta Infonavit. */
   saldo_subcuenta: number | null;
@@ -188,7 +203,10 @@ export type Invitacion = {
   id: string;
   email: string;
   nombre: string | null;
+  apellidos: string | null;
   rol: RolUsuario;
+  reparto_orden: number | null;
+  recibe_leads: boolean;
   invitada_por: string | null;
   usada_en: string | null;
   created_at: string;
@@ -208,6 +226,10 @@ export type Conversacion = {
   asignado_en: string | null;
   asignado_por: string | null;
   lead_id: string | null;
+  contacto_nombre: string | null;
+  contacto_telefono: string | null;
+  contacto_email: string | null;
+  ultima_actividad_en: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -299,6 +321,33 @@ export type Database = {
       mi_rol: { Args: Record<string, never>; Returns: RolUsuario | null };
       /** Regla única de visibilidad de la bandeja; la comparten RLS y la API. */
       puede_ver_conversacion: { Args: { conv: number }; Returns: boolean };
+      /** NSS descifrado sólo para admin o el asesor propietario; deja auditoría. */
+      leer_nss: { Args: { p_lead_id: string }; Returns: string | null };
+      registrar_lead_manual: {
+        Args: {
+          p_nombre: string;
+          p_telefono: string;
+          p_email: string | null;
+          p_estado_republica: string | null;
+          p_saldo_subcuenta: number | null;
+          p_tipo_mejora: string | null;
+          p_mensaje: string | null;
+          p_origen: string;
+          p_canal: string | null;
+        };
+        Returns: string;
+      };
+      registrar_conversacion_whatsapp: {
+        Args: {
+          p_conversacion_id: number;
+          p_bandeja_id: number;
+          p_nombre: string;
+          p_telefono: string;
+          p_email: string | null;
+          p_mensaje_inicial: string | null;
+        };
+        Returns: { lead_id: string; asesor_id: string | null }[];
+      };
     };
     Enums: {
       rol_usuario: RolUsuario;

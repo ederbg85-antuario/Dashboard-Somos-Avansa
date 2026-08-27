@@ -12,7 +12,15 @@ import { actualizarLead, registrarActividad, type Resultado } from "../acciones"
 const inicial: Resultado = { ok: true };
 
 /** Datos y clasificación del expediente. */
-export function FormularioFicha({ lead, equipo }: { lead: Lead; equipo: Perfil[] }) {
+export function FormularioFicha({
+  lead,
+  equipo,
+  esAdmin,
+}: {
+  lead: Lead;
+  equipo: Perfil[];
+  esAdmin: boolean;
+}) {
   const [estado, ejecutar] = useActionState(
     async (_p: Resultado, fd: FormData) => actualizarLead(fd),
     inicial,
@@ -22,7 +30,7 @@ export function FormularioFicha({ lead, equipo }: { lead: Lead; equipo: Perfil[]
     <form action={ejecutar} className="space-y-4">
       <input type="hidden" name="id" value={lead.id} />
 
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className={`grid gap-3 ${esAdmin ? "sm:grid-cols-2" : ""}`}>
         <Campo etiqueta="Nombre completo" name="nombre" defaultValue={lead.nombre} requerido />
         <Campo etiqueta="Teléfono" name="telefono" defaultValue={lead.telefono} requerido />
         <Campo etiqueta="Correo" name="email" type="email" defaultValue={lead.email ?? ""} />
@@ -58,10 +66,14 @@ export function FormularioFicha({ lead, equipo }: { lead: Lead; equipo: Perfil[]
             <option key={g} value={g}>{CLASIFICACIONES[g].nombre}</option>
           ))}
         </CampoSelect>
-        <CampoSelect etiqueta="Asesor responsable" name="asesor_id" defaultValue={lead.asesor_id ?? ""}>
-          <option value="">Sin asignar</option>
-          {equipo.map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}
-        </CampoSelect>
+        {esAdmin && (
+          <CampoSelect etiqueta="Asesor responsable" name="asesor_id" defaultValue={lead.asesor_id ?? ""}>
+            <option value="">Sin asignar</option>
+            {equipo.filter((p) => p.rol === "asesor" && p.activo).map((p) => (
+              <option key={p.id} value={p.id}>{p.nombre} {p.apellidos}</option>
+            ))}
+          </CampoSelect>
+        )}
       </div>
 
       <div className="grid gap-3 sm:grid-cols-[1fr_11rem]">

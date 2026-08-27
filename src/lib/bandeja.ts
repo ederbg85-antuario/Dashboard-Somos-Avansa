@@ -1,5 +1,6 @@
 import "server-only";
 import { clienteServidor } from "@/lib/supabase/servidor";
+import { clienteServicio } from "@/lib/supabase/servicio";
 import type { Sesion } from "@/lib/supabase/sesion";
 import * as cw from "@/lib/chatwoot/cliente";
 import { aFecha, esActividad, type ConversacionCW } from "@/lib/chatwoot/tipos";
@@ -64,20 +65,27 @@ export async function cargarBandeja(sesion: Sesion): Promise<EstadoBandeja> {
 
   const supabase = await clienteServidor();
 
-  // Toda conversación que exista en Chatwoot tiene que existir aquí para
-  // poder repartirse. Se registran sin dueño; la RLS impide que este paso
-  // sirva para auto-asignarse nada.
-  if (deChatwoot.length) {
-    await supabase.from("conversaciones").upsert(
-      deChatwoot.map((c) => ({
-        id: c.id,
-        bandeja_id: c.inbox_id ?? cw.bandejaId ?? 0,
-      })),
-      { onConflict: "id", ignoreDuplicates: true },
-    );
+  // El webhook es la vía normal. Este respaldo idempotente recupera eventos
+  // perdidos cuando el servidor vuelve a estar disponible. Usa service_role
+  // únicamente para invocar el RPC cerrado que asigna en round-robin.
+  const servicio = clienteServicio();
+  if (servicio && deChatwoot.length) {
+    await Promise.all(deChatwoot.map(async (c) => {
+      const contacto = c.meta?.sender;
+      if (!contacto?.phone_number) return;
+      const { error } = await servicio.rpc("registrar_conversacion_whatsapp", {
+        p_conversacion_id: c.id,
+        p_bandeja_id: c.inbox_id ?? cw.bandejaId ?? 0,
+        p_nombre: contacto.name?.trim() || contacto.phone_number,
+        p_telefono: contacto.phone_number,
+        p_email: contacto.email ?? null,
+        p_mensaje_inicial: avanceDe(c),
+      });
+      if (error) console.error("[avansa] Sincronización Chatwoot:", error.code);
+    }));
   }
 
-  // La RLS hace el recorte: un asesor sólo recibe las suyas y las libres.
+  // La RLS hace el recorte: un asesor sólo recibe las suyas.
   const { data: locales } = await supabase
     .from("conversaciones")
     .select("id, asignado_a")
@@ -108,7 +116,12 @@ export async function cargarBandeja(sesion: Sesion): Promise<EstadoBandeja> {
     })
     .sort((a, b) => (b.ultimoEn ?? "").localeCompare(a.ultimoEn ?? ""));
 
-  return { listo: true, filas, total: deChatwoot.length };
+  return {
+    listo: true,
+    filas,
+    // Un asesor no necesita saber cuántas conversaciones pertenecen a otros.
+    total: sesion.perfil.rol === "admin" ? deChatwoot.length : filas.length,
+  };
 }
 
 /**

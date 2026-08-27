@@ -58,14 +58,13 @@ export default async function Conversaciones() {
         titulo="Conversaciones"
         apoyo={
           sesion.perfil.rol === "admin"
-            ? "Todo lo que entra por WhatsApp. Como administrador ves la bandeja completa y puedes repartirla."
-            : "Las conversaciones que atiendes tú, más las que todavía no ha tomado nadie."
+            ? "Supervisión completa de WhatsApp. Puedes reasignar; las respuestas corresponden a los asesores."
+            : "Sólo las conversaciones que el reparto automático asignó a tu perfil."
         }
       />
       <Bandeja
         inicial={estado.filas}
         ocultas={estado.total - estado.filas.length}
-        yo={sesion.usuarioId}
         rol={sesion.perfil.rol}
         equipo={equipo.map((p) => ({ id: p.id, nombre: p.nombre, rol: p.rol }))}
       />
