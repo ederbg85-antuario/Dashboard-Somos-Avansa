@@ -53,6 +53,9 @@ const relojFmt = new Intl.DateTimeFormat("es-MX", {
 const diaFmt = new Intl.DateTimeFormat("es-MX", {
   weekday: "long", day: "numeric", month: "long", timeZone: ZONA,
 });
+const claveDiaFmt = new Intl.DateTimeFormat("en-CA", {
+  year: "numeric", month: "2-digit", day: "2-digit", timeZone: ZONA,
+});
 
 const reloj = (iso: string | null) => (iso ? relojFmt.format(new Date(iso)) : "");
 const dia = (iso: string | null) => (iso ? diaFmt.format(new Date(iso)) : "");
@@ -62,8 +65,7 @@ function cuando(iso: string | null): string {
   if (!iso) return "";
   const d = new Date(iso);
   const hoy = new Date();
-  const mismoDia =
-    d.toDateString() === hoy.toDateString();
+  const mismoDia = claveDiaFmt.format(d) === claveDiaFmt.format(hoy);
   if (mismoDia) return reloj(iso);
   return new Intl.DateTimeFormat("es-MX", {
     day: "numeric", month: "short", timeZone: ZONA,
@@ -336,7 +338,10 @@ export function Bandeja({
                           <span className="truncate text-[0.84rem] font-semibold text-ink">
                             {f.nombre}
                           </span>
-                          <span className="shrink-0 text-[0.68rem] text-slate-400">
+                          <span
+                            suppressHydrationWarning
+                            className="shrink-0 text-[0.68rem] text-slate-400"
+                          >
                             {cuando(f.ultimoEn)}
                           </span>
                         </span>
