@@ -12,15 +12,16 @@ import { createServerClient } from "@supabase/ssr";
 /** Rutas que se sirven sin sesión. */
 const PUBLICAS = ["/entrar", "/auth"];
 const WEBHOOK_CHATWOOT = "/api/webhooks/chatwoot";
+const CRON_PUBLICADOR = "/api/cron/publicar-contenido";
 
 export async function proxy(peticion: NextRequest) {
   const { pathname } = peticion.nextUrl;
   let respuesta = NextResponse.next({ request: peticion });
 
-  // Chatwoot no tiene una cookie de Supabase. Esta única ruta entra con su
-  // secreto propio, validado en tiempo constante dentro del handler. No se
-  // abre el resto de `/api/webhooks` ni ninguna otra API del panel.
-  if (pathname === WEBHOOK_CHATWOOT) return respuesta;
+  // Estas dos rutas técnicas no tienen cookie de Supabase y validan su propio
+  // secreto dentro del handler. La excepción es exacta: no abre el resto de
+  // `/api/webhooks`, `/api/cron` ni ninguna otra API del panel.
+  if (pathname === WEBHOOK_CHATWOOT || pathname === CRON_PUBLICADOR) return respuesta;
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const clave = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;

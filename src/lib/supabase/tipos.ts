@@ -180,6 +180,12 @@ export type ContenidoSocial = {
   estado: EstadoContenidoSocial;
   programado_para: string | null;
   publicado_en: string | null;
+  autorizado_en: string | null;
+  autorizado_por: string | null;
+  publicacion_intentos: number;
+  siguiente_intento_en: string | null;
+  bloqueado_hasta: string | null;
+  lease_token: string | null;
   creado_por: string;
   actualizado_por: string | null;
   resultado_meta: Record<string, unknown>;
@@ -391,6 +397,16 @@ export type Database = {
           p_mensaje_inicial: string | null;
         };
         Returns: { lead_id: string; asesor_id: string | null }[];
+      };
+      /** Reclamo atómico y cercado de una pieza lista para publicar. */
+      reclamar_contenido_social: {
+        Args: {
+          p_id: string;
+          p_ahora: string;
+          p_bloqueado_hasta: string;
+          p_lease_token: string;
+        };
+        Returns: ContenidoSocial[];
       };
     };
     Enums: {

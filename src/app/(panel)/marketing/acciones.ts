@@ -4,6 +4,12 @@ import { revalidatePath } from "next/cache";
 import { clienteServidor } from "@/lib/supabase/servidor";
 import { exigirRol } from "@/lib/supabase/sesion";
 import { metaConfigurado, traerInsights } from "@/lib/meta/insights";
+import {
+  estadoConfiguracionPublicacion,
+  leerResultadoMeta,
+  validarPiezaPublicable,
+  verificarActivosPublicacion,
+} from "@/lib/meta/publicador";
 import { haceDias, iso } from "@/lib/formato";
 import type { CampanaEstado, EstadoContenidoSocial, TipoContenidoSocial } from "@/lib/supabase/tipos";
 
@@ -264,4 +270,85 @@ export async function registrarMediosContenido(contenidoId: string, medios: Medi
   if (error) return { ok: false, error: error.message };
   refrescar();
   return { ok: true, aviso: "Archivo agregado al contenido." };
+}
+
+/**
+ * Da la aprobacion humana que habilita al cron. Guardar una fecha nunca
+ * publica por si solo: el administrador debe autorizar cuando la pieza y sus
+ * archivos ya quedaron completos.
+ */
+export async function autorizarContenido(contenidoId: string): Promise<Resultado> {
+  const { usuarioId } = await exigirRol("admin");
+  if (!/^[0-9a-f-]{36}$/i.test(contenidoId)) {
+    return { ok: false, error: "La pieza no es valida." };
+  }
+
+  const supabase = await clienteServidor();
+  // La versión se lee antes que los medios. Cualquier alta, cambio o borrado
+  // posterior de un archivo toca `updated_at`; el CAS de abajo lo detecta.
+  // Hacer ambas lecturas en paralelo permitiría validar medios viejos junto a
+  // una versión nueva y autorizar una combinación que nunca se verificó.
+  const { data: contenido, error: contenidoError } = await supabase
+    .from("contenidos_sociales")
+    .select("*")
+    .eq("id", contenidoId)
+    .single();
+  if (contenidoError || !contenido) return { ok: false, error: contenidoError?.message ?? "No se encontro la pieza." };
+
+  const { data: medios, error: mediosError } = await supabase
+    .from("contenido_medios")
+    .select("*")
+    .eq("contenido_id", contenidoId)
+    .order("orden");
+  if (mediosError) return { ok: false, error: mediosError.message };
+  if (contenido.autorizado_en) return { ok: true, aviso: "La pieza ya estaba autorizada." };
+  if (contenido.estado !== "programado" || !contenido.programado_para) {
+    return { ok: false, error: "Primero programa una fecha y hora." };
+  }
+
+  const plataformas = contenido.plataformas as ("facebook" | "instagram")[];
+  const conexion = estadoConfiguracionPublicacion(plataformas);
+  if (!conexion.lista) {
+    return { ok: false, error: `La conexion de publicacion aun no esta completa: ${conexion.faltantes.join(", ")}.` };
+  }
+  const activos = await verificarActivosPublicacion(plataformas);
+  if (!activos.ok) {
+    return { ok: false, error: `Meta no pudo validar el token o los activos: ${activos.error}` };
+  }
+
+  const resultadoAnterior = leerResultadoMeta(contenido.resultado_meta);
+  if (resultadoAnterior.facebook || resultadoAnterior.instagram) {
+    return { ok: false, error: "La pieza ya tiene actividad en Meta; revisala antes de volver a autorizar." };
+  }
+
+  const validacion = validarPiezaPublicable({
+    id: contenido.id,
+    titulo: contenido.titulo,
+    texto: contenido.texto,
+    tipo: contenido.tipo,
+    plataformas: contenido.plataformas,
+    medios: medios ?? [],
+  });
+  if (!validacion.ok) return validacion;
+
+  const { data: autorizada, error } = await supabase
+    .from("contenidos_sociales")
+    .update({
+      autorizado_en: new Date().toISOString(),
+      autorizado_por: usuarioId,
+      actualizado_por: usuarioId,
+      error_publicacion: null,
+      siguiente_intento_en: null,
+    })
+    .eq("id", contenidoId)
+    .eq("estado", "programado")
+    .eq("updated_at", contenido.updated_at)
+    .is("autorizado_en", null)
+    .select("id")
+    .maybeSingle();
+
+  if (error) return { ok: false, error: error.message };
+  if (!autorizada) return { ok: false, error: "La pieza cambio mientras se autorizaba; recarga el calendario." };
+  refrescar();
+  return { ok: true, aviso: "Pieza autorizada. Se enviara a partir de la fecha programada." };
 }

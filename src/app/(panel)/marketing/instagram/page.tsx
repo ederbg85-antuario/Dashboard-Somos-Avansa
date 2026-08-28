@@ -11,6 +11,7 @@ import { resolverPeriodo } from "@/lib/periodo";
 import { clienteServidor } from "@/lib/supabase/servidor";
 import { exigirRol } from "@/lib/supabase/sesion";
 import type { ContenidoSocial } from "@/lib/supabase/tipos";
+import { estadoConfiguracionPublicacion, verificarActivosPublicacion } from "@/lib/meta/publicador";
 import { CabeceraMarketing, EstadoFuente, HeroPlataforma, MetricaPlataforma } from "../_componentes/Presentacion";
 
 export const metadata: Metadata = { title: "Instagram · Marketing" };
@@ -74,10 +75,12 @@ export default async function Instagram({
   const programados = piezas.filter((pieza) => pieza.estado === "programado").length;
   const reels = piezas.filter((pieza) => pieza.tipo === "reel").length;
   const historias = piezas.filter((pieza) => pieza.tipo === "historia").length;
-  const credencialesContenido = Boolean(
-    process.env.META_INSTAGRAM_ACCOUNT_ID
-    && process.env.META_CONTENT_ACCESS_TOKEN,
-  );
+  const configuracionContenido = estadoConfiguracionPublicacion(["instagram"]);
+  const validacionContenido = configuracionContenido.lista
+    ? await verificarActivosPublicacion(["instagram"])
+    : { ok: false as const, error: "Faltan credenciales de Instagram." };
+  const credencialesContenido = configuracionContenido.lista && validacionContenido.ok;
+  const errorContenido = validacionContenido.ok ? "" : validacionContenido.error;
 
   return (
     <>
@@ -112,8 +115,8 @@ export default async function Instagram({
           plataforma="instagram"
           titulo={credencialesContenido ? "Credenciales de contenido disponibles" : "Publicación oficial pendiente"}
           texto={credencialesContenido
-            ? "El entorno ya reconoce la cuenta de Instagram de Avansa. La publicación automática sólo se habilita después de probar permisos y revisión de Meta."
-            : "Faltan el identificador de la cuenta profesional y el token técnico de contenido. El calendario funciona sin exponer credenciales."}
+            ? "Cuenta y permisos verificados para el calendario."
+            : errorContenido}
           estado={credencialesContenido ? "conectado" : "pendiente"}
           accion={<BotonEnlace href="/marketing/contenido" tono="claro" tamano="sm">Abrir calendario</BotonEnlace>}
         />
@@ -148,8 +151,7 @@ export default async function Instagram({
               const estado = ESTADOS[pieza.estado];
               const tipo = TIPOS[pieza.tipo];
               return (
-                <article key={pieza.id} className="group relative overflow-hidden rounded-2xl bg-mist p-4 ring-1 ring-hair transition duration-200 hover:-translate-y-1 hover:bg-white hover:shadow-elevada">
-                  <span className="absolute inset-x-0 top-0 h-1" style={{ background: `linear-gradient(90deg, ${tipo.color}, ${estado.color})` }} aria-hidden="true" />
+                <article key={pieza.id} className="group relative overflow-hidden rounded-2xl bg-mist p-4 shadow-[0_10px_26px_-22px_rgb(15_45_61/.42)] transition duration-200 hover:-translate-y-1 hover:bg-white hover:shadow-elevada">
                   <div className="flex items-center justify-between gap-2">
                     <span className="grid size-9 place-items-center rounded-xl bg-white shadow-tarjeta"><Icono nombre={pieza.tipo === "reel" ? "destello" : pieza.tipo === "historia" ? "ojo" : "nota"} className="size-4" /></span>
                     <Insignia color={estado.color}>{estado.etiqueta}</Insignia>

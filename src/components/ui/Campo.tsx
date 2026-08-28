@@ -3,7 +3,7 @@ import type { ComponentProps, ReactNode } from "react";
 /**
  * Campos de formulario.
  *
- * Un solo estilo para todo el panel: alto de 40 px, filete claro, y foco
+ * Un solo estilo para todo el panel: alto de 40 px, superficie suave y foco
  * coral. El `<label>` siempre envuelve al control, así que el área de clic
  * incluye la etiqueta y no hace falta cablear `htmlFor` en cada pantalla.
  */

@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Encabezado } from "@/components/panel/Encabezado";
 import { Icono } from "@/components/ui/Icono";
+import { Tarjeta } from "@/components/ui/Tarjeta";
+import { Vacio } from "@/components/ui/Vacio";
 import { cargarBandeja } from "@/lib/bandeja";
 import { exigirRol } from "@/lib/supabase/sesion";
 import { equipo as cargarEquipo } from "@/lib/datos";
@@ -21,6 +23,24 @@ export default async function Conversaciones() {
 
   const [estado, equipo] = await Promise.all([cargarBandeja(sesion), cargarEquipo()]);
 
+  if (!estado.listo && estado.motivo === "error") {
+    return (
+      <>
+        <Encabezado
+          titulo="Bandeja de entrada"
+          apoyo="Atención de WhatsApp dentro de avansa."
+        />
+        <Tarjeta className="animate-entrar shadow-elevada">
+          <Vacio
+            icono="alerta"
+            titulo="La bandeja no está disponible"
+            texto="No fue posible consultar Chatwoot en este momento. Recarga la página para volver a intentarlo; no se muestran conversaciones de ejemplo para evitar confusiones."
+          />
+        </Tarjeta>
+      </>
+    );
+  }
+
   if (!estado.listo) {
     const asesor = sesion.perfil.rol === "asesor"
       ? sesion.perfil
@@ -32,11 +52,13 @@ export default async function Conversaciones() {
       avance: "Sí, me interesa conocer el proceso para usar mi crédito.",
       ultimoEn: "2026-08-27T20:33:00.000Z",
       entranteSinResponder: true,
+      sinAtender: true,
       sinLeer: 1,
       asignadoA: asesor?.id ?? null,
       asignadoNombre: asesor?.nombre ?? "Asesor avansa",
       mia: sesion.perfil.rol === "asesor",
       libre: !asesor,
+      etapa: null,
     }];
     const mensajesDemo: Mensaje[] = [
       {
@@ -81,7 +103,7 @@ export default async function Conversaciones() {
       <>
         <Encabezado
           titulo="Bandeja de entrada"
-          apoyo="Mensajes de WhatsApp asignados al equipo, reunidos en un solo espacio de atención."
+          apoyo="Atención de WhatsApp dentro de avansa."
         />
         <div className="mb-4 flex animate-entrar items-start gap-3 overflow-hidden rounded-2xl bg-gradient-to-r from-deep to-deep-700 px-4 py-3.5 text-white shadow-elevada">
           <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-white/15 text-[#73e59d] shadow-inner">
@@ -90,7 +112,7 @@ export default async function Conversaciones() {
           <div>
             <p className="text-[0.82rem] font-bold">Vista previa del canal</p>
             <p className="mt-0.5 max-w-3xl text-[0.74rem] leading-relaxed text-white/70">
-              Este chat de muestra se reemplazará por la bandeja real en cuanto quede vinculado el número oficial de WhatsApp.
+              Se reemplazará por mensajes reales al vincular el número oficial.
             </p>
           </div>
         </div>
@@ -101,6 +123,7 @@ export default async function Conversaciones() {
           equipo={equipo.map((p) => ({ id: p.id, nombre: p.nombre, rol: p.rol }))}
           modoDemo
           mensajesDemo={mensajesDemo}
+          etapasDisponibles={false}
         />
       </>
     );
@@ -112,8 +135,8 @@ export default async function Conversaciones() {
         titulo="Bandeja de entrada"
         apoyo={
           sesion.perfil.rol === "admin"
-            ? "Supervisa la atención y reasigna contactos. Las respuestas permanecen a cargo de los asesores."
-            : "Aquí aparecen únicamente los mensajes que el reparto automático asignó a tu perfil."
+            ? "Supervisa atención, etapas y asignaciones."
+            : "Sólo aparecen tus conversaciones asignadas."
         }
       />
       <Bandeja
@@ -121,6 +144,7 @@ export default async function Conversaciones() {
         ocultas={estado.total - estado.filas.length}
         rol={sesion.perfil.rol}
         equipo={equipo.map((p) => ({ id: p.id, nombre: p.nombre, rol: p.rol }))}
+        etapasDisponibles={estado.etapasDisponibles}
       />
     </>
   );

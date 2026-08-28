@@ -1,17 +1,15 @@
 import type { ReactNode } from "react";
 
 /**
- * La superficie base del panel: fondo blanco, filete de un píxel y una
- * sombra muy corta. Sin borde el contenido flota; con borde grueso la
- * pantalla se llena de rejas. Un filete claro más una sombra corta es lo que
- * separa sin ruido cuando hay diez tarjetas a la vez.
+ * La superficie base del panel. La elevación y el contraste de fondo separan
+ * contenido sin convertir una pantalla densa en una cuadrícula de bordes.
  */
 export function Tarjeta({
   children, className = "", padding = true,
 }: { children: ReactNode; className?: string; padding?: boolean }) {
   return (
     <section
-      className={`rounded-2xl bg-white ring-1 ring-hair shadow-tarjeta ${padding ? "p-5" : ""} ${className}`}
+      className={`rounded-2xl bg-white shadow-tarjeta ${padding ? "p-5" : ""} ${className}`}
     >
       {children}
     </section>

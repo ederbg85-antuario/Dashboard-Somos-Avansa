@@ -19,7 +19,7 @@ export function NavegacionMarketing() {
 
   return (
     <nav aria-label="Secciones de Marketing" className="no-imprimir mt-5 overflow-x-auto pb-1">
-      <div className="flex min-w-max items-center gap-1.5 rounded-2xl bg-white/90 p-1.5 shadow-tarjeta ring-1 ring-hair">
+      <div className="flex min-w-max items-center gap-1.5 rounded-2xl bg-white/90 p-1.5 shadow-tarjeta">
         {PESTANAS.map((pestana) => {
           const activa = "exacta" in pestana && pestana.exacta ? ruta === pestana.href : ruta.startsWith(pestana.href);
           const href = periodo && !("sinPeriodo" in pestana)
@@ -37,7 +37,7 @@ export function NavegacionMarketing() {
                   : "text-slate hover:-translate-y-px hover:bg-mist hover:text-ink"
               }`}
             >
-              <span className={`grid size-6 place-items-center rounded-lg ${activa ? "bg-white" : "bg-white ring-1 ring-hair"}`}>
+              <span className="grid size-6 place-items-center rounded-lg bg-[#fff] shadow-[0_2px_8px_rgb(15_45_61/.12)]">
                 <MarcaPlataforma plataforma={pestana.plataforma} className="size-4" />
               </span>
               {pestana.etiqueta}

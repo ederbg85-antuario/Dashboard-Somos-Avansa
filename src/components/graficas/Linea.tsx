@@ -68,9 +68,9 @@ export function Linea({
         return (
           <g key={r}>
             <line x1={M.izquierda} y1={yy} x2={W - M.derecha} y2={yy}
-                  stroke="#E4E9ED" strokeWidth="1" strokeDasharray={r === 0 ? undefined : "3 4"} />
+                  stroke="var(--color-hair)" strokeWidth="1" strokeDasharray={r === 0 ? undefined : "3 4"} />
             <text x={M.izquierda - 8} y={yy + 3.5} textAnchor="end"
-                  className="cifra" fill="#9AA5B1" fontSize="10">
+                  className="cifra" fill="var(--color-slate-400)" fontSize="10">
               {fmt(tope * r)}
             </text>
           </g>
@@ -79,7 +79,7 @@ export function Linea({
 
       {comparativo && comparativo.serie.length > 1 && (
         <path d={camino(comparativo.serie)} fill="none"
-              stroke={comparativo.color ?? "#C3CBD3"} strokeWidth="1.6"
+              stroke={comparativo.color ?? "var(--color-hair-fuerte)"} strokeWidth="1.6"
               strokeDasharray="4 4" strokeLinecap="round" />
       )}
 
@@ -90,7 +90,7 @@ export function Linea({
       {/* puntos: sólo se dibujan si no se amontonan */}
       {serie.length <= 32 && serie.map((p, i) => (
         <circle key={p.etiqueta + i} cx={x(i, serie.length)} cy={y(p.valor)} r="3"
-                fill="#fff" stroke={color} strokeWidth="2">
+                fill="var(--punto-grafica)" stroke={color} strokeWidth="2">
           <title>{`${p.etiqueta}: ${fmt(p.valor)}`}</title>
         </circle>
       ))}
@@ -107,7 +107,7 @@ export function Linea({
         i % paso === 0 || i === serie.length - 1 ? (
           <text key={`x-${p.etiqueta}-${i}`} x={x(i, serie.length)} y={H - 8}
                 textAnchor={i === 0 ? "start" : i === serie.length - 1 ? "end" : "middle"}
-                fill="#9AA5B1" fontSize="10">
+                fill="var(--color-slate-400)" fontSize="10">
             {p.etiqueta}
           </text>
         ) : null,

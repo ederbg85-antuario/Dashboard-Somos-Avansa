@@ -44,7 +44,7 @@ export function HeroPlataforma({
       <div className="relative z-[1] grid gap-6 lg:grid-cols-[minmax(0,1.25fr)_minmax(20rem,.75fr)] lg:items-end">
         <div>
           <div className="flex items-center gap-3">
-            <span className="grid size-12 place-items-center rounded-2xl bg-white shadow-elevada">
+            <span className="grid size-12 place-items-center rounded-2xl bg-[#fff] shadow-elevada">
               <MarcaPlataforma plataforma={plataforma} className="size-7" />
             </span>
             <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-white/65">{ceja}</p>
@@ -95,7 +95,6 @@ export function MetricaPlataforma({
       </div>
       <p className="cifra mt-4 text-[clamp(1.7rem,2.7vw,2.55rem)] font-semibold leading-none tracking-[-0.04em] text-ink">{valor}</p>
       <p className="mt-2 text-[0.74rem] leading-snug text-slate">{apoyo}</p>
-      <span className={estilos.fileteMetrica} style={{ background: color }} aria-hidden="true" />
     </article>
   );
 }
@@ -118,7 +117,7 @@ export function EstadoFuente({
 
   return (
     <article className={`${estilos.estadoFuente} flex items-start gap-3.5`}>
-      <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-white shadow-tarjeta ring-1 ring-hair">
+      <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-[#fff] shadow-tarjeta">
         <MarcaPlataforma plataforma={plataforma} className="size-6" />
       </span>
       <div className="min-w-0 flex-1">
@@ -135,4 +134,3 @@ export function EstadoFuente({
     </article>
   );
 }
-

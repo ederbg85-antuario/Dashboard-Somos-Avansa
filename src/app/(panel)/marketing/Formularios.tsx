@@ -33,7 +33,7 @@ export function NuevaCampana() {
   }
 
   return (
-    <form action={ejecutar} className="w-full space-y-3 rounded-2xl bg-white p-5 ring-1 ring-hair shadow-elevada">
+    <form action={ejecutar} className="w-full space-y-3 rounded-2xl bg-white p-5 shadow-elevada">
       <div className="flex items-center justify-between">
         <h3 className="text-[0.9rem] font-semibold text-ink">Nueva campaña</h3>
         <button type="button" onClick={() => setAbierto(false)}

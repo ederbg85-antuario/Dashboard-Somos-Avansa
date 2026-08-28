@@ -126,7 +126,7 @@ export default async function SearchConsole({
       </div>
 
       {google.analitica ? (
-        <Tarjeta className="mt-4 bg-gradient-to-br from-white to-[#fff9ef]">
+        <Tarjeta className="mt-4 !bg-sand-50">
           <CabezaTarjeta titulo="Contexto en Analytics" apoyo="Después del clic, GA4 mide la navegación del sitio con una metodología distinta." />
           <div className="mt-4 grid gap-3 sm:grid-cols-3">
             <Contexto etiqueta="Usuarios" valor={numero(google.analitica.usuarios)} />
@@ -141,10 +141,9 @@ export default async function SearchConsole({
 
 function Contexto({ etiqueta, valor }: { etiqueta: string; valor: string }) {
   return (
-    <div className="rounded-2xl bg-white px-4 py-3 shadow-tarjeta ring-1 ring-hair">
+    <div className="rounded-2xl bg-white px-4 py-3 shadow-tarjeta">
       <p className="text-[0.7rem] font-semibold uppercase tracking-[0.09em] text-slate">{etiqueta}</p>
       <p className="cifra mt-1.5 text-[1.55rem] font-semibold text-ink">{valor}</p>
     </div>
   );
 }
-

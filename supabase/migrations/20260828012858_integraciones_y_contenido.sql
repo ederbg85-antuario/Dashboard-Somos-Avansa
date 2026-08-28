@@ -30,6 +30,11 @@ comment on table public.integraciones_google is
 
 alter table public.integraciones_google enable row level security;
 
+-- Los privilegios no dependen de los auto-grants del proyecto. El navegador
+-- nunca toca el refresh token; sólo los procesos privados con service_role.
+revoke all on table public.integraciones_google from public, anon, authenticated;
+grant select, insert, update, delete on table public.integraciones_google to service_role;
+
 drop trigger if exists integraciones_google_touch on public.integraciones_google;
 create trigger integraciones_google_touch before update on public.integraciones_google
   for each row execute function public.touch_updated_at();
@@ -83,17 +88,27 @@ create index if not exists contenido_medios_contenido_orden_idx
 alter table public.contenidos_sociales enable row level security;
 alter table public.contenido_medios enable row level security;
 
+revoke all on table public.contenidos_sociales from public, anon, authenticated;
+revoke all on table public.contenido_medios from public, anon, authenticated;
+grant select, insert, update, delete on table public.contenidos_sociales to authenticated, service_role;
+grant select, insert, update, delete on table public.contenido_medios to authenticated, service_role;
+
+revoke all on type public.tipo_contenido_social from public, anon;
+revoke all on type public.estado_contenido_social from public, anon;
+grant usage on type public.tipo_contenido_social to authenticated, service_role;
+grant usage on type public.estado_contenido_social to authenticated, service_role;
+
 drop policy if exists "administradores gestionan contenidos sociales" on public.contenidos_sociales;
 create policy "administradores gestionan contenidos sociales"
   on public.contenidos_sociales for all to authenticated
-  using (public.tiene_rol('admin'))
-  with check (public.tiene_rol('admin'));
+  using ((select private.es_admin()))
+  with check ((select private.es_admin()));
 
 drop policy if exists "administradores gestionan medios sociales" on public.contenido_medios;
 create policy "administradores gestionan medios sociales"
   on public.contenido_medios for all to authenticated
-  using (public.tiene_rol('admin'))
-  with check (public.tiene_rol('admin'));
+  using ((select private.es_admin()))
+  with check ((select private.es_admin()));
 
 -- Los medios se suben desde el navegador con la sesión de un administrador;
 -- el bucket es privado para que los archivos nunca queden indexables.
@@ -113,20 +128,20 @@ on conflict (id) do update set
 drop policy if exists "administradores leen medios de contenido avansa" on storage.objects;
 create policy "administradores leen medios de contenido avansa"
   on storage.objects for select to authenticated
-  using (bucket_id = 'avansa-contenido' and public.tiene_rol('admin'));
+  using (bucket_id = 'avansa-contenido' and (select private.es_admin()));
 
 drop policy if exists "administradores suben medios de contenido avansa" on storage.objects;
 create policy "administradores suben medios de contenido avansa"
   on storage.objects for insert to authenticated
-  with check (bucket_id = 'avansa-contenido' and public.tiene_rol('admin'));
+  with check (bucket_id = 'avansa-contenido' and (select private.es_admin()));
 
 drop policy if exists "administradores actualizan medios de contenido avansa" on storage.objects;
 create policy "administradores actualizan medios de contenido avansa"
   on storage.objects for update to authenticated
-  using (bucket_id = 'avansa-contenido' and public.tiene_rol('admin'))
-  with check (bucket_id = 'avansa-contenido' and public.tiene_rol('admin'));
+  using (bucket_id = 'avansa-contenido' and (select private.es_admin()))
+  with check (bucket_id = 'avansa-contenido' and (select private.es_admin()));
 
 drop policy if exists "administradores borran medios de contenido avansa" on storage.objects;
 create policy "administradores borran medios de contenido avansa"
   on storage.objects for delete to authenticated
-  using (bucket_id = 'avansa-contenido' and public.tiene_rol('admin'));
+  using (bucket_id = 'avansa-contenido' and (select private.es_admin()));

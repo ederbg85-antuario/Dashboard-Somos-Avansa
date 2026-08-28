@@ -14,7 +14,9 @@ export const dynamic = "force-dynamic";
  */
 export async function GET() {
   const sesion = await obtenerSesion();
-  if (!sesion) return NextResponse.json({ error: "Sin sesión" }, { status: 401 });
+  if (!sesion || !sesion.perfil.activo) {
+    return NextResponse.json({ error: "Sin sesión" }, { status: 401 });
+  }
 
   const estado = await cargarBandeja(sesion);
 
@@ -31,5 +33,6 @@ export async function GET() {
     // asesor le confirma que hay trabajo repartido sin enseñarle de quién.
     ocultas: estado.total - estado.filas.length,
     rol: sesion.perfil.rol,
+    etapasDisponibles: estado.etapasDisponibles,
   });
 }

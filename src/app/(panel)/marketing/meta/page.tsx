@@ -148,7 +148,7 @@ export default async function MetaAds({
           <div className="mt-4">
             <BotonSincronizar configurado={metaConfigurado()} />
             {!metaConfigurado() ? (
-              <div className="mt-3 rounded-2xl bg-[#eef5ff] p-4 text-[0.78rem] leading-relaxed text-[#153f75]">
+              <div className="mt-3 rounded-2xl bg-sand-50 p-4 text-[0.78rem] leading-relaxed text-ink">
                 <p className="flex items-center gap-2 font-semibold"><Icono nombre="alerta" className="size-4" />Falta el token técnico de Meta Ads</p>
                 <p className="mt-1.5">Hasta conectarlo, el panel conserva la captura manual y no presenta cifras externas como si fueran actuales.</p>
               </div>
@@ -163,4 +163,3 @@ export default async function MetaAds({
     </>
   );
 }
-

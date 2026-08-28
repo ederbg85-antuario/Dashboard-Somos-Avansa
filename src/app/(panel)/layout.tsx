@@ -19,7 +19,7 @@ export default async function LayoutPanel({ children }: { children: React.ReactN
     : null;
 
   return (
-    <div className="min-h-dvh lg:flex">
+    <div className="dashboard-sin-bordes min-h-dvh lg:flex">
       <BarraLateral
         grupos={menuPara(perfil.rol)}
         nombre={perfil.nombre}
@@ -33,7 +33,7 @@ export default async function LayoutPanel({ children }: { children: React.ReactN
           <div className="mx-auto w-full max-w-[86rem] animate-entrar">{children}</div>
         </main>
 
-        <footer className="no-imprimir border-t border-hair px-4 py-5 sm:px-7">
+        <footer className="no-imprimir px-4 py-5 sm:px-7">
           <p className="mx-auto max-w-[86rem] text-[0.68rem] leading-relaxed text-slate-400">
             {DISCLAIMER}
           </p>

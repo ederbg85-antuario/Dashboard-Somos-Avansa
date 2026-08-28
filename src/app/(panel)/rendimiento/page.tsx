@@ -44,21 +44,20 @@ export default async function RendimientoAsesores({
     );
   }
 
-  const { filas, tendencia, sinAsignar, actualizadoEn, chatwoot } = resultado.datos;
+  const { filas, tendencia, sinAsignar, actualizadoEn, chatwoot, reporteChatwoot } = resultado.datos;
   const esAdmin = sesion.perfil.rol === "admin";
   const totalLeads = suma(filas, "leadsAsignados");
   const totalCierres = suma(filas, "cierresPeriodo");
   const totalCierresCohorte = suma(filas, "cierresCohorte");
   const totalCerrado = suma(filas, "montoCerrado");
   const totalEnTramite = suma(filas, "montoEnTramite");
-  const totalExpedientes = suma(filas, "expedientesEnTramite");
-  const totalChatsRegistrados = filas.reduce((suma, fila) => suma + fila.chatsRegistrados, 0);
   const totalCargaActiva = filas.every((fila) => fila.cargaActiva !== null)
     ? filas.reduce((suma, fila) => suma + (fila.cargaActiva ?? 0), 0)
     : null;
   const conversion = totalLeads > 0 ? (totalCierresCohorte * 100) / totalLeads : null;
   const tiempoCierre = promedioPonderado(filas, "tiempoMedioCierreDias", "cierresPeriodo");
   const primeraRespuesta = promedioPonderado(filas, "primeraRespuestaMinutos", "respuestasMedidas");
+  const respuestaMedia = promedioPonderado(filas, "respuestaMediaMinutos", "respuestasChatwootMedidas");
   const hayActividadPeriodo = totalLeads > 0 || totalCierres > 0;
 
   const serieLeads: PuntoSerie[] = tendencia.map((punto) => ({
@@ -106,6 +105,17 @@ export default async function RendimientoAsesores({
       nota: "abiertos",
     }));
 
+  const serieConversacionesChatwoot: PuntoSerie[] = (reporteChatwoot?.tendencia ?? []).map((punto) => ({
+    etiqueta: fecha(timestampChatwoot(punto.timestamp)),
+    valor: punto.conversaciones,
+  }));
+  const serieResolucionesChatwoot: PuntoSerie[] = (reporteChatwoot?.tendencia ?? []).map((punto) => ({
+    etiqueta: fecha(timestampChatwoot(punto.timestamp)),
+    valor: punto.resoluciones,
+  }));
+  const hayActividadChatwoot = (reporteChatwoot?.resumen?.conversaciones ?? 0) > 0
+    || (reporteChatwoot?.resumen?.resoluciones ?? 0) > 0;
+
   return (
     <>
       <section className="relative mb-5 animate-entrar overflow-hidden rounded-[1.75rem] bg-gradient-to-br from-deep via-deep-700 to-[#195063] p-5 text-white shadow-flotante sm:p-6">
@@ -125,7 +135,7 @@ export default async function RendimientoAsesores({
             </h1>
             <p className="mt-1.5 max-w-xl text-[0.8rem] leading-relaxed text-white/65">
               {esAdmin
-                ? "Compara carga, cierres y valor producido por el equipo con métricas verificables del CRM."
+                ? "Compara carga, cierres y valor producido con fuentes verificables del CRM y Chatwoot."
                 : "Consulta tus leads, cierres y carga actual. Esta vista no recibe información de otros asesores."}
             </p>
           </div>
@@ -152,22 +162,14 @@ export default async function RendimientoAsesores({
       </section>
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <Metrica rotulo="Leads asignados" valor={numero(totalLeads)} icono="usuarios" color="coral"
-                 nota={`Ingresaron en ${rango.etiqueta.toLowerCase()}`} />
         <Metrica rotulo="Cierres" valor={numero(totalCierres)} icono="cheque" color="teal"
                  nota="Fecha de cierre en el periodo" />
         <Metrica rotulo="Conversión" valor={porcentaje(conversion)} icono="embudo" color="coral"
-                 nota="Cierres de la cohorte ÷ leads de la cohorte" />
+                 nota={`${numero(totalCierresCohorte)} de ${numero(totalLeads)} leads`} />
         <Metrica rotulo="Tiempo de cierre" valor={duracionDias(tiempoCierre)} icono="reloj" color="sand"
                  nota="Promedio de cierres del periodo" />
         <Metrica rotulo="Monto cerrado" valor={dineroCorto(totalCerrado)} icono="monedas" color="teal"
                  nota="Valor estimado de expedientes ganados" />
-        <Metrica rotulo="Monto en trámite" valor={dineroCorto(totalEnTramite)} icono="carpeta" color="sand"
-                 nota={`${numero(totalExpedientes)} expedientes abiertos`} />
-        <Metrica rotulo="Carga WhatsApp" valor={totalCargaActiva === null ? "—" : numero(totalCargaActiva)} icono="conversacion" color="teal"
-                 nota={`${numero(totalChatsRegistrados)} chats registrados localmente`} />
-        <Metrica rotulo="Primera respuesta" valor={duracionRespuesta(primeraRespuesta)} icono="whatsapp" color="teal"
-                 nota={primeraRespuesta === null ? "Requiere respuestas verificadas" : "Chats firmados del periodo"} />
       </div>
 
       {(sinAsignar > 0 || chatwoot.estado !== "listo") && (
@@ -189,6 +191,154 @@ export default async function RendimientoAsesores({
             />
           )}
         </div>
+      )}
+
+      {esAdmin && reporteChatwoot && (
+        <details className="group mt-4">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-2xl bg-white px-4 py-3.5 text-[0.82rem] font-semibold text-ink shadow-elevada transition hover:shadow-flotante">
+            <span className="flex items-center gap-2">
+              <Icono nombre="whatsapp" className="size-4 text-teal-700" />
+              Informe detallado de WhatsApp
+            </span>
+            <span className="text-[0.7rem] font-medium text-slate group-open:hidden">Abrir</span>
+            <span className="hidden text-[0.7rem] font-medium text-slate group-open:inline">Cerrar</span>
+          </summary>
+          <section className="mt-3 space-y-4" aria-labelledby="operacion-whatsapp">
+          <Tarjeta className="!ring-0 shadow-elevada">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="flex items-center gap-2 text-[0.65rem] font-bold uppercase tracking-[0.14em] text-teal-700">
+                  <span className="grid size-7 place-items-center rounded-lg bg-teal-50">
+                    <Icono nombre="whatsapp" className="size-3.5" />
+                  </span>
+                  Fuente oficial Chatwoot
+                </p>
+                <h2 id="operacion-whatsapp" className="mt-2 text-[1.05rem] font-semibold tracking-tight text-ink">
+                  Operación de la bandeja de WhatsApp
+                </h2>
+                <p className="mt-1 max-w-3xl text-[0.72rem] leading-relaxed text-slate">
+                  El resumen y la tendencia corresponden sólo a la bandeja configurada. No sustituyen el ranking CRM por asesor.
+                </p>
+              </div>
+              <span className={`rounded-xl px-2.5 py-1 text-[0.68rem] font-semibold ${
+                reporteChatwoot.estado === "listo"
+                  ? "bg-teal-50 text-teal-700"
+                  : reporteChatwoot.estado === "parcial"
+                    ? "bg-sand-50 text-[#8C6238]"
+                    : "bg-coral-50 text-coral-700"
+              }`}>
+                {reporteChatwoot.estado === "listo" ? "Informe completo" : reporteChatwoot.estado === "parcial" ? "Cobertura parcial" : "No disponible"}
+              </span>
+            </div>
+
+            {reporteChatwoot.resumen ? (
+              <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
+                <MetricaCompacta rotulo="Conversaciones" valor={numero(reporteChatwoot.resumen.conversaciones)} />
+                <MetricaCompacta rotulo="Resueltas" valor={numero(reporteChatwoot.resumen.resoluciones)} />
+                <MetricaCompacta rotulo="Entrantes" valor={numero(reporteChatwoot.resumen.mensajesEntrantes)} />
+                <MetricaCompacta rotulo="Salientes" valor={numero(reporteChatwoot.resumen.mensajesSalientes)} />
+                <MetricaCompacta rotulo="1ª respuesta" valor={duracionSegundos(reporteChatwoot.resumen.primeraRespuestaSegundos)} />
+                <MetricaCompacta rotulo="Resolución" valor={duracionSegundos(reporteChatwoot.resumen.resolucionSegundos)} />
+              </div>
+            ) : (
+              <div className="mt-4">
+                <Vacio icono="whatsapp" titulo="Resumen oficial no disponible" texto={reporteChatwoot.detalle} />
+              </div>
+            )}
+
+            {reporteChatwoot.estado !== "listo" && (
+              <p className="mt-3 rounded-xl bg-sand-50 px-3 py-2 text-[0.68rem] leading-relaxed text-[#8C6238]">
+                {reporteChatwoot.detalle}
+              </p>
+            )}
+          </Tarjeta>
+
+          <div className="grid gap-4 xl:grid-cols-[1.35fr_1fr]">
+            <Tarjeta className="!ring-0 shadow-elevada">
+              <CabezaTarjeta
+                titulo="Flujo oficial de conversaciones"
+                apoyo="Conversaciones creadas y resoluciones registradas por Chatwoot en la bandeja configurada."
+              />
+              <div className="mt-4">
+                {hayActividadChatwoot && serieConversacionesChatwoot.length > 0 ? (
+                  <Linea
+                    serie={serieConversacionesChatwoot}
+                    color="#25D366"
+                    alto={245}
+                    comparativo={{ serie: serieResolucionesChatwoot, color: "#195063", nombre: "Resoluciones" }}
+                  />
+                ) : (
+                  <Vacio icono="conversacion" titulo="Sin actividad oficial en el periodo" texto="Chatwoot aún no registra conversaciones ni resoluciones para este intervalo." />
+                )}
+              </div>
+              <div className="mt-2 flex flex-wrap justify-center gap-4 text-[0.7rem] text-slate">
+                <Leyenda color="#25D366">Conversaciones</Leyenda>
+                <Leyenda color="#195063">Resoluciones</Leyenda>
+              </div>
+            </Tarjeta>
+
+            <Tarjeta className="!ring-0 shadow-elevada">
+              <CabezaTarjeta
+                titulo="Calidad de respuesta atribuible"
+                apoyo="Sólo eventos oficiales que coinciden con mensajes firmados desde el dashboard."
+              />
+              <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+                <IndicadorRespuesta
+                  rotulo="Primera respuesta"
+                  valor={duracionRespuesta(primeraRespuesta)}
+                  muestra={filas.reduce((total, fila) => total + fila.respuestasMedidas, 0)}
+                />
+                <IndicadorRespuesta
+                  rotulo="Tiempo entre respuestas"
+                  valor={duracionRespuesta(respuestaMedia)}
+                  muestra={filas.reduce((total, fila) => total + fila.respuestasChatwootMedidas, 0)}
+                />
+              </div>
+              <p className="mt-3 text-[0.67rem] leading-relaxed text-slate-400">
+                Si una respuesta se envía directamente en Chatwoot, no se asigna a ningún asesor del CRM.
+              </p>
+            </Tarjeta>
+          </div>
+
+          <Tarjeta className="!ring-0 shadow-elevada">
+            <CabezaTarjeta
+              titulo="Identidades técnicas de Chatwoot"
+              apoyo="Reporte agrupado por agente para toda la cuenta. Estas identidades no equivalen a René, Daniela o Carlos."
+            />
+            {reporteChatwoot.identidades.length > 0 ? (
+              <Tabla className="mt-4">
+                <Encabezados>
+                  <Th>Identidad Chatwoot</Th>
+                  <Th numerica>Conversaciones</Th>
+                  <Th numerica>Resueltas</Th>
+                  <Th numerica>1ª respuesta</Th>
+                  <Th numerica>Respuesta media</Th>
+                  <Th numerica>Resolución</Th>
+                </Encabezados>
+                <tbody>
+                  {reporteChatwoot.identidades.map((identidad) => (
+                    <Fila key={identidad.id}>
+                      <Td>
+                        <p className="font-semibold text-ink">{identidad.nombre}</p>
+                        <p className="text-[0.67rem] text-slate-400">{identidad.email ?? `ID ${identidad.id}`}</p>
+                      </Td>
+                      <Td numerica>{numero(identidad.conversaciones)}</Td>
+                      <Td numerica>{numero(identidad.resoluciones)}</Td>
+                      <Td numerica>{duracionSegundos(identidad.primeraRespuestaSegundos)}</Td>
+                      <Td numerica>{duracionSegundos(identidad.respuestaSegundos)}</Td>
+                      <Td numerica>{duracionSegundos(identidad.resolucionSegundos)}</Td>
+                    </Fila>
+                  ))}
+                </tbody>
+              </Tabla>
+            ) : (
+              <div className="mt-4">
+                <Vacio icono="usuarios" titulo="Sin identidades reportables" texto="Chatwoot no devolvió actividad agrupada por agente en este periodo." />
+              </div>
+            )}
+          </Tarjeta>
+          </section>
+        </details>
       )}
 
       <div className="mt-4 grid gap-4 xl:grid-cols-[1.45fr_1fr]">
@@ -287,7 +437,13 @@ export default async function RendimientoAsesores({
         </Tarjeta>
       </div>
 
-      <Tarjeta className="mt-4 !ring-0 shadow-elevada">
+      <details className="group mt-4">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-2xl bg-white px-4 py-3.5 text-[0.82rem] font-semibold text-ink shadow-elevada transition hover:shadow-flotante">
+          <span>{esAdmin ? "Detalle del equipo" : "Detalle de mi rendimiento"}</span>
+          <span className="text-[0.7rem] font-medium text-slate group-open:hidden">Ver tabla</span>
+          <span className="hidden text-[0.7rem] font-medium text-slate group-open:inline">Ocultar</span>
+        </summary>
+      <Tarjeta className="mt-3 !ring-0 shadow-elevada">
         <CabezaTarjeta
           titulo={esAdmin ? "Detalle del equipo" : "Detalle de mi desempeño"}
           apoyo={`Definiciones uniformes para ${rango.etiqueta.toLowerCase()}. Los guiones significan que no existe una base verificable.`}
@@ -306,6 +462,7 @@ export default async function RendimientoAsesores({
               <Th numerica>En trámite</Th>
               <Th numerica>Carga WA</Th>
               <Th numerica>1ª respuesta</Th>
+              <Th numerica>Respuesta media</Th>
             </Encabezados>
             <tbody>
               {filas.map((fila) => (
@@ -342,26 +499,19 @@ export default async function RendimientoAsesores({
                       <span className="block text-[0.67rem] text-slate-400">{numero(fila.respuestasMedidas)} chats</span>
                     )}
                   </Td>
+                  <Td numerica>
+                    <span className="block">{duracionRespuesta(fila.respuestaMediaMinutos)}</span>
+                    {fila.respuestasChatwootMedidas > 0 && (
+                      <span className="block text-[0.67rem] text-slate-400">{numero(fila.respuestasChatwootMedidas)} eventos</span>
+                    )}
+                  </Td>
                 </Fila>
               ))}
             </tbody>
           </Tabla>
         )}
       </Tarjeta>
-
-      <Tarjeta className="mt-4 !ring-0 shadow-tarjeta">
-        <div className="grid gap-4 text-[0.74rem] leading-relaxed text-slate lg:grid-cols-3">
-          <Definicion titulo="Asignación y privacidad">
-            Los resultados se atribuyen al propietario actual. Dirección ve el equipo completo; cada asesor consulta únicamente sus filas autorizadas por RLS.
-          </Definicion>
-          <Definicion titulo="Conversión y cierre">
-            Conversión = cierres ganados de la cohorte ÷ leads que entraron en el periodo. El tiempo de cierre usa la diferencia entre entrada y cierre sellado por el CRM.
-          </Definicion>
-          <Definicion titulo="WhatsApp">
-            La primera respuesta sólo usa mensajes entrantes y respuestas firmadas desde el panel. No se atribuyen mensajes enviados directamente en Chatwoot.
-          </Definicion>
-        </div>
-      </Tarjeta>
+      </details>
     </>
   );
 }
@@ -372,8 +522,8 @@ function suma(filas: FilaRendimiento[], campo: "leadsAsignados" | "cierresPeriod
 
 function promedioPonderado(
   filas: FilaRendimiento[],
-  valor: "tiempoMedioCierreDias" | "primeraRespuestaMinutos",
-  peso: "cierresPeriodo" | "respuestasMedidas",
+  valor: "tiempoMedioCierreDias" | "primeraRespuestaMinutos" | "respuestaMediaMinutos",
+  peso: "cierresPeriodo" | "respuestasMedidas" | "respuestasChatwootMedidas",
 ): number | null {
   const medibles = filas.filter((fila) => fila[valor] !== null && fila[peso] > 0);
   const total = medibles.reduce((suma, fila) => suma + fila[peso], 0);
@@ -401,6 +551,44 @@ function duracionRespuesta(minutos: number | null) {
   if (minutos < 60) return `${Math.round(minutos)} min`;
   if (minutos < 1_440) return `${(minutos / 60).toFixed(1).replace(/\.0$/, "")} h`;
   return duracionDias(minutos / 1_440);
+}
+
+function duracionSegundos(segundos: number | null) {
+  return segundos === null ? "—" : duracionRespuesta(segundos / 60);
+}
+
+function timestampChatwoot(timestamp: number) {
+  const milisegundos = timestamp < 100_000_000_000 ? timestamp * 1000 : timestamp;
+  return new Date(milisegundos).toISOString();
+}
+
+function MetricaCompacta({ rotulo, valor }: { rotulo: string; valor: string }) {
+  return (
+    <article className="rounded-2xl bg-mist/70 px-3.5 py-3 shadow-tarjeta">
+      <p className="text-[0.61rem] font-semibold uppercase tracking-[0.07em] text-slate">{rotulo}</p>
+      <p className="cifra mt-1.5 truncate text-[1.05rem] font-semibold text-ink">{valor}</p>
+    </article>
+  );
+}
+
+function IndicadorRespuesta({
+  rotulo,
+  valor,
+  muestra,
+}: {
+  rotulo: string;
+  valor: string;
+  muestra: number;
+}) {
+  return (
+    <div className="rounded-2xl bg-teal-50 px-4 py-3.5 shadow-tarjeta">
+      <p className="text-[0.65rem] font-semibold uppercase tracking-[0.07em] text-teal-700">{rotulo}</p>
+      <p className="cifra mt-2 text-[1.3rem] font-semibold leading-none text-ink">{valor}</p>
+      <p className="mt-2 text-[0.65rem] text-slate-400">
+        {muestra > 0 ? `${numero(muestra)} ${muestra === 1 ? "medición" : "mediciones"}` : "Sin base atribuible"}
+      </p>
+    </div>
+  );
 }
 
 function Metrica({
@@ -503,14 +691,5 @@ function RankingPorcentaje({
         </li>
       ))}
     </ul>
-  );
-}
-
-function Definicion({ titulo, children }: { titulo: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <p className="font-semibold text-ink">{titulo}</p>
-      <p className="mt-1">{children}</p>
-    </div>
   );
 }

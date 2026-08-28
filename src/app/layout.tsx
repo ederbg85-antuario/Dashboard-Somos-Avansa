@@ -2,6 +2,21 @@ import type { Metadata, Viewport } from "next";
 import { Poppins } from "next/font/google";
 import "./globals.css";
 
+const scriptTema = `
+  (function () {
+    try {
+      var preferencia = localStorage.getItem("avansa:tema");
+      var oscuro = preferencia === "dark" ||
+        (preferencia !== "light" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+      document.documentElement.dataset.theme = oscuro ? "dark" : "light";
+      document.documentElement.style.colorScheme = oscuro ? "dark" : "light";
+    } catch (_) {
+      document.documentElement.dataset.theme = "light";
+      document.documentElement.style.colorScheme = "light";
+    }
+  })();
+`;
+
 const poppins = Poppins({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
@@ -35,7 +50,10 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es-MX" className={poppins.variable}>
+    <html lang="es-MX" className={poppins.variable} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: scriptTema }} />
+      </head>
       <body className="font-sans">{children}</body>
     </html>
   );

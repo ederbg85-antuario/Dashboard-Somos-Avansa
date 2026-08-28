@@ -56,9 +56,9 @@ export function Barras({
           return (
             <g key={r}>
               <line x1={M.izquierda} y1={yy} x2={W - M.derecha} y2={yy}
-                    stroke="#E4E9ED" strokeWidth="1" strokeDasharray={r === 0 ? undefined : "3 4"} />
+                    stroke="var(--color-hair)" strokeWidth="1" strokeDasharray={r === 0 ? undefined : "3 4"} />
               <text x={M.izquierda - 8} y={yy + 3.5} textAnchor="end" className="cifra"
-                    fill="#9AA5B1" fontSize="10">{fmt(tope * r)}</text>
+                    fill="var(--color-slate-400)" fontSize="10">{fmt(tope * r)}</text>
             </g>
           );
         })}
@@ -86,7 +86,7 @@ export function Barras({
                 );
               })}
               <text x={M.izquierda + i * anchoGrupo + anchoGrupo / 2} y={H - 9}
-                    textAnchor="middle" fill="#9AA5B1" fontSize="10">{d.etiqueta}</text>
+                    textAnchor="middle" fill="var(--color-slate-400)" fontSize="10">{d.etiqueta}</text>
             </g>
           );
         })}

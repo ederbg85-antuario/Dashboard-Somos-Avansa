@@ -34,7 +34,7 @@ export function SelectorPeriodo({ actual }: { actual: string }) {
 
   return (
     <div
-      className={`no-imprimir inline-flex items-center rounded-xl bg-white p-1 ring-1 ring-hair shadow-tarjeta ${
+      className={`no-imprimir selector-periodo inline-flex max-w-full items-center overflow-x-auto rounded-xl bg-white p-1 shadow-tarjeta ${
         cargando ? "opacity-70" : ""
       }`}
       role="group"
@@ -47,9 +47,8 @@ export function SelectorPeriodo({ actual }: { actual: string }) {
           type="button"
           onClick={() => cambiar(p.clave)}
           aria-pressed={actual === p.clave}
-          className={`rounded-lg px-2.5 py-1.5 text-[0.76rem] font-semibold transition ${
-            actual === p.clave ? "bg-deep text-white" : "text-slate hover:bg-mist hover:text-ink"
-          }`}
+          data-activo={actual === p.clave}
+          className="selector-periodo__opcion shrink-0 rounded-lg px-2.5 py-1.5 text-[0.76rem] font-semibold text-slate transition hover:bg-mist hover:text-ink"
         >
           {p.etiqueta}
         </button>

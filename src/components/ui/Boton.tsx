@@ -7,9 +7,9 @@ type Tamano = "sm" | "md";
 const TONOS: Record<Tono, string> = {
   coral:    "bg-coral text-white hover:bg-coral-700 shadow-tarjeta",
   oscuro:   "bg-deep text-white hover:bg-deep-700 shadow-tarjeta",
-  claro:    "bg-white text-ink ring-1 ring-hair hover:bg-mist hover:ring-hair-fuerte",
+  claro:    "bg-white text-ink shadow-tarjeta hover:bg-mist hover:shadow-elevada",
   fantasma: "text-slate hover:bg-mist hover:text-ink",
-  peligro:  "bg-white text-coral ring-1 ring-coral-100 hover:bg-coral-50",
+  peligro:  "bg-white text-coral shadow-tarjeta hover:bg-coral-50 hover:shadow-elevada",
 };
 
 const TAMANOS: Record<Tamano, string> = {

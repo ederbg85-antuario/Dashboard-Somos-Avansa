@@ -13,7 +13,7 @@ import "server-only";
  * el módulo de marketing sirve igual con captura manual.
  */
 
-const VERSION = process.env.META_API_VERSION ?? "v23.0";
+const VERSION = process.env.META_API_VERSION ?? "v26.0";
 
 export type FilaInsight = {
   meta_campaign_id: string;

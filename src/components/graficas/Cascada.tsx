@@ -66,16 +66,16 @@ export function Cascada({ pasos, alto = 280 }: { pasos: PasoCascada[]; alto?: nu
         return (
           <g key={r}>
             <line x1={M.izquierda} y1={yy} x2={W - M.derecha} y2={yy}
-                  stroke="#E4E9ED" strokeWidth="1" strokeDasharray="3 4" />
+                  stroke="var(--color-hair)" strokeWidth="1" strokeDasharray="3 4" />
             <text x={M.izquierda - 8} y={yy + 3.5} textAnchor="end" className="cifra"
-                  fill="#9AA5B1" fontSize="10">{dineroCompacto(min + r * rango)}</text>
+                  fill="var(--color-slate-400)" fontSize="10">{dineroCompacto(min + r * rango)}</text>
           </g>
         );
       })}
 
       {/* la línea del cero se marca sólida: es la frontera entre ganar y perder */}
       <line x1={M.izquierda} y1={yCero} x2={W - M.derecha} y2={yCero}
-            stroke="#C3CBD3" strokeWidth="1.2" />
+            stroke="var(--color-hair-fuerte)" strokeWidth="1.2" />
 
       {barras.map((b, i) => {
         const cx = M.izquierda + i * anchoPaso + anchoPaso / 2;
@@ -91,7 +91,7 @@ export function Cascada({ pasos, alto = 280 }: { pasos: PasoCascada[]; alto?: nu
               <line x1={M.izquierda + (i - 1) * anchoPaso + anchoPaso / 2 + anchoBarra / 2}
                     y1={y(barras[i - 1].hasta)}
                     x2={x0} y2={y(barras[i - 1].hasta)}
-                    stroke="#D3DBE2" strokeWidth="1" strokeDasharray="2 3" />
+                    stroke="var(--color-hair-fuerte)" strokeWidth="1" strokeDasharray="2 3" />
             )}
 
             <rect x={x0} y={arriba} width={anchoBarra} height={altura} rx="4"
@@ -100,17 +100,17 @@ export function Cascada({ pasos, alto = 280 }: { pasos: PasoCascada[]; alto?: nu
             </rect>
 
             <text x={cx} y={arriba - 6} textAnchor="middle" className="cifra"
-                  fill={esTotal ? "#0D1117" : "#6B7785"}
+                  fill={esTotal ? "var(--color-ink)" : "var(--color-slate)"}
                   fontSize="10" fontWeight={esTotal ? 600 : 400}>
               {esTotal ? dineroCompacto(b.monto) : `−${dineroCompacto(b.monto)}`}
             </text>
 
-            <text x={cx} y={H - 26} textAnchor="middle" fill="#6B7785" fontSize="9.5"
+            <text x={cx} y={H - 26} textAnchor="middle" fill="var(--color-slate)" fontSize="9.5"
                   fontWeight={esTotal ? 600 : 400}>
               {primeraLinea(b.etiqueta)}
             </text>
             {segundaLinea(b.etiqueta) && (
-              <text x={cx} y={H - 14} textAnchor="middle" fill="#9AA5B1" fontSize="9.5">
+              <text x={cx} y={H - 14} textAnchor="middle" fill="var(--color-slate-400)" fontSize="9.5">
                 {segundaLinea(b.etiqueta)}
               </text>
             )}

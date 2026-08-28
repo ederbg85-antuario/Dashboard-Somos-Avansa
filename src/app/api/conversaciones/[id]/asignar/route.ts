@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import * as cw from "@/lib/chatwoot/cliente";
 import { clienteServidor } from "@/lib/supabase/servidor";
 import { obtenerSesion } from "@/lib/supabase/sesion";
 
@@ -8,7 +9,9 @@ export const dynamic = "force-dynamic";
 /** Reasignación administrativa del lead completo y su conversación ligada. */
 export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const sesion = await obtenerSesion();
-  if (!sesion) return NextResponse.json({ error: "Sin sesión" }, { status: 401 });
+  if (!sesion || !sesion.perfil.activo) {
+    return NextResponse.json({ error: "Sin sesión" }, { status: 401 });
+  }
   if (sesion.perfil.rol !== "admin") {
     return NextResponse.json({ error: "Sólo un administrador puede reasignar." }, { status: 403 });
   }
@@ -27,10 +30,18 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   }
   const destino = typeof cuerpo.a === "string" ? cuerpo.a : "";
   if (!destino) return NextResponse.json({ error: "Elige un asesor." }, { status: 400 });
+  if (!cw.hayChatwoot || !cw.bandejaId) {
+    return NextResponse.json({ error: "Chatwoot no está configurado." }, { status: 503 });
+  }
 
   const supabase = await clienteServidor();
   const [{ data: local }, { data: asesor }] = await Promise.all([
-    supabase.from("conversaciones").select("lead_id").eq("id", conversacion).maybeSingle(),
+    supabase
+      .from("conversaciones")
+      .select("lead_id")
+      .eq("id", conversacion)
+      .eq("bandeja_id", cw.bandejaId)
+      .maybeSingle(),
     supabase.from("perfiles").select("id").eq("id", destino).eq("rol", "asesor").eq("activo", true).maybeSingle(),
   ]);
 

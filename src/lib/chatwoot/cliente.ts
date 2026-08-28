@@ -18,6 +18,8 @@ const TOKEN = process.env.CHATWOOT_TOKEN;
 const CUENTA = process.env.CHATWOOT_CUENTA_ID;
 const BANDEJA = process.env.CHATWOOT_BANDEJA_ID;
 
+/** Cuenta a la que pertenece la credencial técnica. */
+export const cuentaId = CUENTA ? Number(CUENTA) : null;
 /** Bandeja a la que se limita el panel, si se fijó una. */
 export const bandejaId = BANDEJA ? Number(BANDEJA) : null;
 
@@ -28,7 +30,9 @@ export const bandejaId = BANDEJA ? Number(BANDEJA) : null;
 export const hayChatwoot = Boolean(
   URL_BASE
   && TOKEN
-  && CUENTA
+  && cuentaId
+  && Number.isSafeInteger(cuentaId)
+  && cuentaId > 0
   && bandejaId
   && Number.isSafeInteger(bandejaId)
   && bandejaId > 0,
@@ -46,7 +50,7 @@ async function pedir<T>(ruta: string, init?: RequestInit): Promise<T> {
     throw new ErrorChatwoot(503, "Chatwoot no está configurado en este entorno.");
   }
 
-  const respuesta = await fetch(`${URL_BASE}/api/v1/accounts/${CUENTA}${ruta}`, {
+  const respuesta = await fetch(`${URL_BASE}/api/v1/accounts/${cuentaId}${ruta}`, {
     ...init,
     headers: {
       "Content-Type": "application/json",
@@ -56,17 +60,26 @@ async function pedir<T>(ruta: string, init?: RequestInit): Promise<T> {
     // La bandeja es lo más vivo del panel: cachearla mostraría mensajes
     // viejos, que en atención a leads es peor que tardar 200 ms más.
     cache: "no-store",
+    // Un upstream abierto sin responder no debe dejar colgada la carga del
+    // panel ni acumular sondeos concurrentes en el navegador.
+    signal: init?.signal ?? AbortSignal.timeout(10_000),
   });
 
   if (!respuesta.ok) {
-    const cuerpo = await respuesta.text().catch(() => "");
     throw new ErrorChatwoot(
       respuesta.status,
-      `Chatwoot respondió ${respuesta.status} a ${ruta}. ${cuerpo.slice(0, 300)}`,
+      `Chatwoot respondió ${respuesta.status} al consultar la bandeja.`,
     );
   }
 
-  return respuesta.json() as Promise<T>;
+  if (respuesta.status === 204) return undefined as T;
+  const cuerpo = await respuesta.text();
+  if (!cuerpo) return undefined as T;
+  try {
+    return JSON.parse(cuerpo) as T;
+  } catch {
+    throw new ErrorChatwoot(502, `Chatwoot devolvió JSON inválido a ${ruta}.`);
+  }
 }
 
 /**
@@ -93,9 +106,14 @@ export async function conversaciones(): Promise<ConversacionCW[]> {
       const r = await pedir<{ data?: { payload?: ConversacionCW[] } }>(
         `/conversations?${busca}`,
       );
-      const lote = r.data?.payload ?? [];
+      // El query de Chatwoot ya pide una bandeja, pero el filtro local es el
+      // límite de confianza: ninguna respuesta inesperada de otra bandeja se
+      // sincroniza ni llega a la pantalla.
+      const loteCrudo = r.data?.payload ?? [];
+      const lote = loteCrudo
+        .filter((conversacion) => conversacion.inbox_id === bandejaId);
       acumuladas.push(...lote);
-      if (lote.length < 25) break;
+      if (loteCrudo.length < 25) break;
     }
 
     return acumuladas;
@@ -107,10 +125,42 @@ export async function conversaciones(): Promise<ConversacionCW[]> {
 
 /** Mensajes de una conversación, del más viejo al más nuevo. */
 export async function mensajes(conversacion: number): Promise<MensajeCW[]> {
-  const r = await pedir<{ payload?: MensajeCW[] }>(
-    `/conversations/${conversacion}/messages`,
-  );
-  return r.payload ?? [];
+  const acumulados: MensajeCW[] = [];
+  let antesDe: number | null = null;
+
+  // Chatwoot entrega 20 por página al retroceder. Cien mensajes recientes
+  // cubren el contexto operativo sin convertir la apertura de un chat largo
+  // en un recorrido sin límite.
+  for (let pagina = 0; pagina < 5; pagina += 1) {
+    const sufijo = antesDe === null ? "" : `?before=${antesDe}`;
+    let r: { payload?: MensajeCW[] };
+    try {
+      r = await pedir<{ payload?: MensajeCW[] }>(
+        `/conversations/${conversacion}/messages${sufijo}`,
+      );
+    } catch (causa) {
+      if (acumulados.length === 0) throw causa;
+      break;
+    }
+
+    const lote = (r.payload ?? []).filter((mensaje) => Number.isSafeInteger(mensaje.id) && mensaje.id > 0);
+    acumulados.push(...lote);
+    if (lote.length < 20) break;
+
+    const masAntiguo = Math.min(...lote.map((mensaje) => mensaje.id));
+    if (!Number.isSafeInteger(masAntiguo) || masAntiguo <= 0 || masAntiguo === antesDe) break;
+    antesDe = masAntiguo;
+  }
+
+  return [...new Map(acumulados.map((mensaje) => [mensaje.id, mensaje])).values()]
+    .sort((a, b) => (a.created_at ?? 0) - (b.created_at ?? 0) || a.id - b.id);
+}
+
+/** Limpia el contador de no leídos de la identidad técnica de la bandeja. */
+export async function marcarLeida(conversacion: number): Promise<void> {
+  await pedir(`/conversations/${conversacion}/update_last_seen`, {
+    method: "POST",
+  });
 }
 
 /** Responde en la conversación. Sale como mensaje del negocio, no como nota. */
@@ -118,10 +168,26 @@ export async function responder(
   conversacion: number,
   contenido: string,
 ): Promise<MensajeCW> {
-  return pedir<MensajeCW>(`/conversations/${conversacion}/messages`, {
+  const mensaje = await pedir<MensajeCW>(`/conversations/${conversacion}/messages`, {
     method: "POST",
-    body: JSON.stringify({ content: contenido, message_type: "outgoing" }),
+    body: JSON.stringify({
+      content: contenido,
+      message_type: "outgoing",
+      private: false,
+      content_type: "text",
+    }),
   });
+
+  if (
+    !mensaje
+    || !Number.isSafeInteger(mensaje.id)
+    || mensaje.id <= 0
+    || (mensaje.conversation_id !== undefined && mensaje.conversation_id !== conversacion)
+    || (mensaje.message_type !== undefined && mensaje.message_type !== 1)
+  ) {
+    throw new ErrorChatwoot(502, "Chatwoot devolvió un mensaje saliente inválido.");
+  }
+  return mensaje;
 }
 
 /** Marca la conversación como resuelta o la vuelve a abrir. */

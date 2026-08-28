@@ -31,7 +31,6 @@
   z-index: -1;
   width: min(30rem, 62vw);
   aspect-ratio: 1;
-  border: 1px solid rgb(255 255 255 / .19);
   border-radius: 43% 57% 63% 37% / 38% 42% 58% 62%;
   box-shadow: inset 0 0 0 3rem rgb(255 255 255 / .025), 0 0 0 5rem rgb(255 255 255 / .025);
   animation: marketing-flotar 9s ease-in-out infinite alternate;
@@ -39,19 +38,17 @@
 
 .cifraHero {
   min-height: 5.1rem;
-  border: 1px solid rgb(255 255 255 / .13);
   border-radius: 1rem;
   padding: .9rem 1rem;
   background: rgb(255 255 255 / .09);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / .08);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / .08), 0 12px 28px -20px rgb(0 0 0 / .65);
   backdrop-filter: blur(10px);
 }
 
 .metrica {
   position: relative;
   overflow: hidden;
-  min-height: 9.7rem;
-  border: 1px solid rgb(228 233 237 / .9);
+  min-height: 9.2rem;
   border-radius: 1.25rem;
   padding: 1rem;
   background: white;
@@ -67,20 +64,25 @@
 
 .metricaDestacada { background: linear-gradient(145deg, #fff, #fff5f7); }
 
-.fileteMetrica {
-  position: absolute;
-  inset: auto 1rem 0;
-  height: 3px;
-  border-radius: 999px 999px 0 0;
-  transform-origin: left;
-  animation: marketing-crecer .72s .18s cubic-bezier(.22, 1, .36, 1) both;
-}
-
 .estadoFuente {
   border-radius: 1.25rem;
   padding: 1rem;
   background: linear-gradient(145deg, #fff, #f8fafb);
-  box-shadow: inset 0 0 0 1px rgb(228 233 237 / .9), 0 12px 28px -22px rgb(15 45 61 / .34);
+  box-shadow: 0 2px 5px rgb(15 45 61 / .04), 0 16px 34px -22px rgb(15 45 61 / .34);
+}
+
+:global(html[data-theme="dark"]) .metrica {
+  background: #10242e;
+  box-shadow: 0 2px 5px rgb(0 0 0 / .2), 0 18px 38px -22px rgb(0 0 0 / .9);
+}
+
+:global(html[data-theme="dark"]) .metricaDestacada {
+  background: linear-gradient(145deg, #172934, #2e2029);
+}
+
+:global(html[data-theme="dark"]) .estadoFuente {
+  background: linear-gradient(145deg, #10242e, #0d2029);
+  box-shadow: 0 2px 5px rgb(0 0 0 / .2), 0 18px 38px -24px rgb(0 0 0 / .9);
 }
 
 .puntoVivo {
@@ -103,11 +105,6 @@
   to { opacity: 1; transform: none; }
 }
 
-@keyframes marketing-crecer {
-  from { transform: scaleX(0); }
-  to { transform: scaleX(1); }
-}
-
 @keyframes marketing-flotar {
   from { transform: rotate(-4deg) translate3d(0, 0, 0); }
   to { transform: rotate(7deg) translate3d(-1.5rem, 1.2rem, 0); }
@@ -119,7 +116,12 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .hero, .metrica, .fileteMetrica, .orbe, .puntoVivo, .grafica { animation: none; }
+  .hero, .metrica, .orbe, .puntoVivo, .grafica { animation: none; }
   .metrica:hover { transform: none; }
 }
 
+@media (max-width: 40rem) {
+  .hero { border-radius: 1.4rem; }
+  .orbe { right: -35%; top: -28%; width: 25rem; }
+  .metrica { min-height: 8.7rem; }
+}

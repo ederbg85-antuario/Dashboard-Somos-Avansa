@@ -60,9 +60,9 @@ export default async function Reportes({
     { etiqueta: "Costo directo", monto: er.costoDirecto, tipo: "resta", color: "#FF4D6D" },
     { etiqueta: "Utilidad bruta", monto: er.utilidadBruta, tipo: "total", color: "#1E9E8D" },
     { etiqueta: "Marketing", monto: er.totales.gasto_marketing, tipo: "resta", color: "#E63A58" },
-    { etiqueta: "Operación", monto: er.totales.gasto_operativo, tipo: "resta", color: "#0F2D3D" },
+    { etiqueta: "Operación", monto: er.totales.gasto_operativo, tipo: "resta", color: "var(--grafica-deep)" },
     { etiqueta: "Administración", monto: er.totales.gasto_administrativo, tipo: "resta", color: "#6B7785" },
-    { etiqueta: "EBITDA", monto: er.ebitda, tipo: "total", color: "#0F2D3D" },
+    { etiqueta: "EBITDA", monto: er.ebitda, tipo: "total", color: "var(--grafica-deep)" },
     { etiqueta: "Depreciación", monto: er.depreciacion, tipo: "resta", color: "#D9AE83" },
     { etiqueta: "Financieros", monto: er.financiero, tipo: "resta", color: "#C79A6E" },
     { etiqueta: "Impuestos", monto: er.impuestos, tipo: "resta", color: "#A8804F" },
@@ -94,7 +94,7 @@ export default async function Reportes({
                        apoyo={dineroCorto(er.utilidadBruta)}
                        variacion={er.margenBruto !== null && erPrevio.margenBruto !== null ? er.margenBruto - erPrevio.margenBruto : null} />
             <Indicador rotulo="Margen EBITDA" valor={porcentaje(er.margenEbitda)}
-                       acento={er.ebitda >= 0 ? "#0F2D3D" : "#FF4D6D"} icono="reporte"
+                       acento={er.ebitda >= 0 ? "var(--grafica-deep)" : "#FF4D6D"} icono="reporte"
                        apoyo={dineroCorto(er.ebitda)}
                        variacion={er.margenEbitda !== null && erPrevio.margenEbitda !== null ? er.margenEbitda - erPrevio.margenEbitda : null} />
             <Indicador rotulo="Margen neto" valor={porcentaje(er.margenNeto)}
@@ -152,8 +152,9 @@ export default async function Reportes({
                           </span>
                         </Td>
                         <Td numerica>
-                          <span className={resultado ? "font-semibold" : ""}
-                                style={{ color: negativo ? "#E63A58" : resultado ? "#0D1117" : "#6B7785" }}>
+                          <span className={`${resultado ? "font-semibold" : ""} ${
+                            negativo ? "text-coral-700" : resultado ? "text-ink" : "text-slate"
+                          }`}>
                             {dinero(r.monto)}
                           </span>
                         </Td>
@@ -249,13 +250,13 @@ export default async function Reportes({
                     <Td numerica><span className="text-slate">{porcentaje(h.er.margenBruto)}</span></Td>
                     <Td numerica><span className="text-slate">{dinero(h.er.gastosOperativos)}</span></Td>
                     <Td numerica>
-                      <span className="font-semibold" style={{ color: h.er.ebitda >= 0 ? "#1E9E8D" : "#E63A58" }}>
+                      <span className={`font-semibold ${h.er.ebitda >= 0 ? "text-teal-700" : "text-coral-700"}`}>
                         {dinero(h.er.ebitda)}
                       </span>
                     </Td>
                     <Td numerica><span className="text-slate">{porcentaje(h.er.margenEbitda)}</span></Td>
                     <Td numerica>
-                      <span className="font-semibold" style={{ color: h.er.utilidadNeta >= 0 ? "#0D1117" : "#E63A58" }}>
+                      <span className={`font-semibold ${h.er.utilidadNeta >= 0 ? "text-ink" : "text-coral-700"}`}>
                         {dinero(h.er.utilidadNeta)}
                       </span>
                     </Td>

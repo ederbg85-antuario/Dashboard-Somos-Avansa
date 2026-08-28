@@ -68,7 +68,7 @@ export default async function Finanzas({
     valores: [
       { nombre: "Ingresos", valor: d.er.ingresos, color: "#2FB6A3" },
       { nombre: "Egresos", valor: d.er.egresosEfectivo, color: "#FF4D6D" },
-      { nombre: "EBITDA", valor: Math.max(d.er.ebitda, 0), color: "#0F2D3D" },
+      { nombre: "EBITDA", valor: Math.max(d.er.ebitda, 0), color: "var(--grafica-deep)" },
     ],
   }));
 
@@ -108,7 +108,7 @@ export default async function Finanzas({
           apoyo="sin depreciación"
         />
         <Indicador
-          rotulo="Margen bruto" valor={porcentaje(er.margenBruto)} icono="destello" acento="#0F2D3D"
+          rotulo="Margen bruto" valor={porcentaje(er.margenBruto)} icono="destello" acento="var(--grafica-deep)"
           apoyo={`${dineroCorto(er.utilidadBruta)} de utilidad bruta`}
           variacion={er.margenBruto !== null && erPrevio.margenBruto !== null
             ? er.margenBruto - erPrevio.margenBruto : null}
@@ -216,7 +216,7 @@ export default async function Finanzas({
                       )}
                     </Td>
                     <Td numerica>
-                      <span className="font-semibold" style={{ color: m.tipo === "ingreso" ? "#1E9E8D" : "#0D1117" }}>
+                      <span className={`font-semibold ${m.tipo === "ingreso" ? "text-teal-700" : "text-ink"}`}>
                         {m.tipo === "ingreso" ? "+" : "−"}{dinero(m.monto)}
                       </span>
                       {Number(m.iva) > 0 && (

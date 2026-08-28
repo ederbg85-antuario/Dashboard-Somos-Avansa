@@ -144,7 +144,6 @@ export default async function TableroCRM({
               return (
                 <section key={etapa.clave} className="flex w-[18rem] shrink-0 animate-entrar flex-col rounded-[1.35rem] bg-white/70 p-2.5 shadow-tarjeta backdrop-blur-sm">
                   <header className="relative mb-2 overflow-hidden rounded-2xl bg-white px-3 py-3 shadow-tarjeta">
-                    <span className="absolute inset-y-0 left-0 w-1" style={{ background: etapa.color }} aria-hidden="true" />
                     <div className="flex items-start justify-between gap-2">
                       <span className="flex min-w-0 items-center gap-2">
                         <Punto color={etapa.color} />

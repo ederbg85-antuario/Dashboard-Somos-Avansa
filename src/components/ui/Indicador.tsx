@@ -9,7 +9,7 @@ import { Icono, type NombreIcono } from "./Icono";
  * número no dice nada — «120 leads» sólo significa algo contra el mes pasado.
  */
 export function Indicador({
-  rotulo, valor, apoyo, variacion, icono, acento = "#0F2D3D",
+  rotulo, valor, apoyo, variacion, icono, acento = "var(--grafica-deep)",
   invertido = false, extra,
 }: {
   rotulo: string;
@@ -24,14 +24,14 @@ export function Indicador({
   extra?: ReactNode;
 }) {
   return (
-    <article className="relative overflow-hidden rounded-2xl bg-white p-4 ring-1 ring-hair shadow-tarjeta">
-      {/* Filete de color: identifica el indicador de un vistazo sin teñir la tarjeta. */}
+    <article className="relative overflow-hidden rounded-2xl bg-white p-4 shadow-tarjeta">
+      {/* Un halo corto conserva el código de color sin formar una franja. */}
       <span
-        className="absolute inset-y-0 left-0 w-[3px]"
+        className="pointer-events-none absolute -right-8 -top-8 size-24 rounded-full opacity-[0.09] blur-2xl"
         style={{ background: acento }}
         aria-hidden="true"
       />
-      <div className="flex items-start justify-between gap-3 pl-1.5">
+      <div className="relative flex items-start justify-between gap-3">
         <p className="text-[0.72rem] font-semibold uppercase tracking-[0.08em] text-slate">
           {rotulo}
         </p>
@@ -43,18 +43,18 @@ export function Indicador({
         )}
       </div>
 
-      <p className="cifra mt-2 pl-1.5 text-[1.65rem] font-semibold leading-none tracking-tight text-ink">
+      <p className="cifra relative mt-2 text-[1.65rem] font-semibold leading-none tracking-tight text-ink">
         {valor}
       </p>
 
       {(apoyo || variacion !== undefined) && (
-        <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 pl-1.5">
+        <div className="relative mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">
           {variacion !== undefined && <Variacion valor={variacion} invertido={invertido} />}
           {apoyo && <span className="text-[0.75rem] leading-tight text-slate">{apoyo}</span>}
         </div>
       )}
 
-      {extra && <div className="mt-3 pl-1.5">{extra}</div>}
+      {extra && <div className="relative mt-3">{extra}</div>}
     </article>
   );
 }

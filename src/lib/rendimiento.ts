@@ -1,6 +1,11 @@
 import "server-only";
 
 import * as chatwoot from "@/lib/chatwoot/cliente";
+import * as reportesChatwoot from "@/lib/chatwoot/reportes";
+import type {
+  EventoReporteChatwoot,
+  ResumenBandejaChatwoot,
+} from "@/lib/chatwoot/reportes";
 import { aFecha, esActividad } from "@/lib/chatwoot/tipos";
 import { finDelDia, inicioDelDia, iso } from "@/lib/formato";
 import type { Rango } from "@/lib/periodo";
@@ -48,12 +53,40 @@ export type FilaRendimiento = {
   cargaActiva: number | null;
   primeraRespuestaMinutos: number | null;
   respuestasMedidas: number;
+  respuestaMediaMinutos: number | null;
+  respuestasChatwootMedidas: number;
 };
 
 export type EstadoChatwoot = {
   estado: "sin-configurar" | "listo" | "parcial" | "error";
   detalle: string;
   conversacionesRevisadas: number;
+  fuenteRespuestas: "reporting-events" | "mensajes-firmados" | null;
+};
+
+export type PuntoOperacionChatwoot = {
+  timestamp: number;
+  conversaciones: number;
+  resoluciones: number;
+};
+
+export type IdentidadChatwoot = {
+  id: number;
+  nombre: string;
+  email: string | null;
+  conversaciones: number;
+  resoluciones: number;
+  primeraRespuestaSegundos: number | null;
+  resolucionSegundos: number | null;
+  respuestaSegundos: number | null;
+};
+
+export type ReporteOperativoChatwoot = {
+  estado: "listo" | "parcial" | "error";
+  detalle: string;
+  resumen: ResumenBandejaChatwoot | null;
+  tendencia: PuntoOperacionChatwoot[];
+  identidades: IdentidadChatwoot[];
 };
 
 export type Rendimiento = {
@@ -62,6 +95,7 @@ export type Rendimiento = {
   sinAsignar: number;
   actualizadoEn: string;
   chatwoot: EstadoChatwoot;
+  reporteChatwoot: ReporteOperativoChatwoot | null;
 };
 
 export type ResultadoRendimiento =
@@ -105,6 +139,7 @@ async function porLotes<T, R>(
 type MetricasChatwoot = {
   activasPorAsesor: Map<string, number>;
   primeraRespuestaPorAsesor: Map<string, number[]>;
+  respuestaMediaPorAsesor: Map<string, number[]>;
   estado: EstadoChatwoot;
 };
 
@@ -117,6 +152,7 @@ async function metricasDeChatwoot(
   const vacio = {
     activasPorAsesor: new Map<string, number>(),
     primeraRespuestaPorAsesor: new Map<string, number[]>(),
+    respuestaMediaPorAsesor: new Map<string, number[]>(),
   };
 
   if (!chatwoot.hayChatwoot) {
@@ -126,12 +162,25 @@ async function metricasDeChatwoot(
         estado: "sin-configurar",
         detalle: "La carga activa y la primera respuesta aparecerán al conectar Chatwoot.",
         conversacionesRevisadas: 0,
+        fuenteRespuestas: null,
       },
     };
   }
 
   try {
-    const activas = await chatwoot.conversaciones();
+    const [activas, eventosResultado] = await Promise.all([
+      chatwoot.conversaciones(),
+      reportesChatwoot.eventosBandeja(
+        new Date(desde).toISOString(),
+        new Date(hasta).toISOString(),
+      ).then((datos) => ({ listo: true as const, datos })).catch((error: unknown) => {
+        console.error(
+          "[avansa] Reporting events de Chatwoot no disponibles",
+          error instanceof Error ? error.message : error,
+        );
+        return { listo: false as const };
+      }),
+    ]);
     const permitidas = new Map(conversaciones.map((conversacion) => [conversacion.id, conversacion]));
     const activasPorAsesor = new Map<string, number>();
 
@@ -148,19 +197,29 @@ async function metricasDeChatwoot(
       firmasPorConversacion.set(respuesta.conversacion_id, porMensaje);
     }
 
-    // Sólo se consulta un conjunto acotado de chats recientes que tengan una
-    // respuesta firmada. Una respuesta enviada directamente desde Chatwoot no
-    // se atribuye a un asesor: sería una suposición, no una métrica.
-    const candidatas = conversaciones
+    const eventosPorConversacion = new Map<number, EventoReporteChatwoot[]>();
+    if (eventosResultado.listo) {
+      for (const evento of eventosResultado.datos.eventos) {
+        if (!evento.conversacionId || !permitidas.has(evento.conversacionId)) continue;
+        const actuales = eventosPorConversacion.get(evento.conversacionId) ?? [];
+        actuales.push(evento);
+        eventosPorConversacion.set(evento.conversacionId, actuales);
+      }
+    }
+
+    // Sólo se consulta un conjunto acotado de chats recientes con respuestas
+    // firmadas en el periodo. RLS ya limitó `conversaciones` y `respuestas`;
+    // esta intersección impide que un evento global de Chatwoot termine en la
+    // fila de otro asesor.
+    const todasLasCandidatas = conversaciones
       .filter((conversacion) => {
-        const fechaAsignacion = conversacion.asignado_en ?? conversacion.created_at;
-        return Boolean(
-          conversacion.asignado_a
-          && enRango(fechaAsignacion, desde, hasta)
-          && firmasPorConversacion.has(conversacion.id),
-        );
+        if (!conversacion.asignado_a) return false;
+        const firmas = firmasPorConversacion.get(conversacion.id);
+        return Boolean(firmas && [...firmas.values()].some((firma) =>
+          firma.autor_id === conversacion.asignado_a && enRango(firma.enviado_en, desde, hasta)));
       })
-      .sort((a, b) => (b.asignado_en ?? b.created_at).localeCompare(a.asignado_en ?? a.created_at))
+      .sort((a, b) => (b.ultima_actividad_en ?? b.created_at).localeCompare(a.ultima_actividad_en ?? a.created_at));
+    const candidatas = todasLasCandidatas
       .slice(0, MAX_CHATS_PRIMERA_RESPUESTA);
 
     const revisadas = await porLotes(candidatas, TAMANO_LOTE_CHATWOOT, async (conversacion) => {
@@ -172,22 +231,62 @@ async function metricasDeChatwoot(
       if (!primerEntrante?.created_at || !conversacion.asignado_a) return null;
 
       const firmas = firmasPorConversacion.get(conversacion.id);
-      const primeraFirmada = mensajes.find((mensaje) => {
+      // Si la primera salida no está firmada por el propietario actual, no se
+      // atribuye. Buscar una salida firmada posterior inflaría artificialmente
+      // su tiempo de primera respuesta.
+      const primeraSalida = mensajes.find((mensaje) =>
+        mensaje.message_type === 1
+        && Boolean(mensaje.created_at)
+        && mensaje.created_at! >= primerEntrante.created_at!);
+      const eventos = eventosPorConversacion.get(conversacion.id) ?? [];
+      let primeraManual: number | null = null;
+      let primeraOficial: number | null = null;
+      if (primeraSalida?.created_at) {
+        const firmaPrimera = firmas?.get(primeraSalida.id);
+        if (firmaPrimera?.autor_id === conversacion.asignado_a) {
+          const inicio = new Date(aFecha(primerEntrante.created_at)!).getTime();
+          const respuesta = new Date(aFecha(primeraSalida.created_at)!).getTime();
+          const minutos = (respuesta - inicio) / 60_000;
+          if (
+            Number.isFinite(minutos)
+            && minutos >= 0
+            && enRango(aFecha(primeraSalida.created_at), desde, hasta)
+          ) {
+            primeraManual = minutos;
+          }
+
+          const evento = eventos.find((candidato) =>
+            candidato.nombre.toLowerCase() === "first_response"
+            && coincideConMensaje(candidato, primeraSalida.created_at!));
+          if (evento && evento.valorSegundos >= 0) {
+            primeraOficial = evento.valorSegundos / 60;
+          }
+        }
+      }
+
+      const salidasFirmadas = mensajes.filter((mensaje) => {
         if (mensaje.message_type !== 1 || !mensaje.created_at) return false;
         const firma = firmas?.get(mensaje.id);
         return firma?.autor_id === conversacion.asignado_a
-          && mensaje.created_at >= primerEntrante.created_at!;
+          && enRango(aFecha(mensaje.created_at), desde, hasta);
+      });
+      const respuestasOficiales = eventos.flatMap((evento) => {
+        if (evento.nombre.toLowerCase() !== "reply_time" || evento.valorSegundos < 0) return [];
+        return salidasFirmadas.some((mensaje) => coincideConMensaje(evento, mensaje.created_at!))
+          ? [evento.valorSegundos / 60]
+          : [];
       });
 
-      if (!primeraFirmada?.created_at) return null;
-      const inicio = new Date(aFecha(primerEntrante.created_at)!).getTime();
-      const respuesta = new Date(aFecha(primeraFirmada.created_at)!).getTime();
-      const minutos = (respuesta - inicio) / 60_000;
-      if (!Number.isFinite(minutos) || minutos < 0) return null;
-      return { asesorId: conversacion.asignado_a, minutos };
+      return {
+        asesorId: conversacion.asignado_a,
+        primeraManual,
+        primeraOficial,
+        respuestasOficiales,
+      };
     });
 
     const primeraRespuestaPorAsesor = new Map<string, number[]>();
+    const respuestaMediaPorAsesor = new Map<string, number[]>();
     let fallidas = 0;
     for (const resultado of revisadas) {
       if (resultado.status === "rejected") {
@@ -195,27 +294,48 @@ async function metricasDeChatwoot(
         continue;
       }
       if (!resultado.value) continue;
-      const actuales = primeraRespuestaPorAsesor.get(resultado.value.asesorId) ?? [];
-      actuales.push(resultado.value.minutos);
-      primeraRespuestaPorAsesor.set(resultado.value.asesorId, actuales);
+      const primera = eventosResultado.listo
+        ? resultado.value.primeraOficial
+        : resultado.value.primeraManual;
+      if (primera !== null) {
+        const actuales = primeraRespuestaPorAsesor.get(resultado.value.asesorId) ?? [];
+        actuales.push(primera);
+        primeraRespuestaPorAsesor.set(resultado.value.asesorId, actuales);
+      }
+      if (eventosResultado.listo && resultado.value.respuestasOficiales.length > 0) {
+        const actuales = respuestaMediaPorAsesor.get(resultado.value.asesorId) ?? [];
+        actuales.push(...resultado.value.respuestasOficiales);
+        respuestaMediaPorAsesor.set(resultado.value.asesorId, actuales);
+      }
     }
 
-    const recortadas = conversaciones.filter((conversacion) => {
-      const fechaAsignacion = conversacion.asignado_en ?? conversacion.created_at;
-      return enRango(fechaAsignacion, desde, hasta) && firmasPorConversacion.has(conversacion.id);
-    }).length > candidatas.length;
+    const recortadas = todasLasCandidatas.length > candidatas.length;
+    const eventosRecortados = eventosResultado.listo && eventosResultado.datos.truncado;
+    const parcial = fallidas > 0 || recortadas || !eventosResultado.listo || eventosRecortados;
+    const fuenteRespuestas = eventosResultado.listo
+      ? "reporting-events" as const
+      : "mensajes-firmados" as const;
+
+    let detalle = "Carga abierta y tiempos oficiales de respuesta verificados con Chatwoot.";
+    if (!eventosResultado.listo) {
+      detalle = "Carga activa verificada; la primera respuesta usa mensajes firmados porque Chatwoot no entregó reporting events.";
+    } else if (eventosRecortados) {
+      detalle = "Los reporting events excedieron 500 registros; las métricas de respuesta cubren sólo las primeras 20 páginas.";
+    } else if (recortadas) {
+      detalle = `Primera respuesta calculada sobre los ${MAX_CHATS_PRIMERA_RESPUESTA} chats firmados más recientes del periodo.`;
+    } else if (fallidas > 0) {
+      detalle = "Algunos chats no pudieron consultarse; los promedios usan sólo respuestas verificadas.";
+    }
 
     return {
       activasPorAsesor,
       primeraRespuestaPorAsesor,
+      respuestaMediaPorAsesor,
       estado: {
-        estado: fallidas > 0 || recortadas ? "parcial" : "listo",
-        detalle: recortadas
-          ? `Primera respuesta calculada sobre los ${MAX_CHATS_PRIMERA_RESPUESTA} chats firmados más recientes del periodo.`
-          : fallidas > 0
-            ? "Algunos chats no pudieron consultarse; el promedio usa sólo respuestas verificadas."
-            : "Carga abierta y respuestas verificadas directamente con Chatwoot.",
+        estado: parcial ? "parcial" : "listo",
+        detalle,
         conversacionesRevisadas: revisadas.filter((resultado) => resultado.status === "fulfilled").length,
+        fuenteRespuestas,
       },
     };
   } catch (error) {
@@ -226,9 +346,89 @@ async function metricasDeChatwoot(
         estado: "error",
         detalle: "Chatwoot no respondió; las métricas del CRM siguen disponibles.",
         conversacionesRevisadas: 0,
+        fuenteRespuestas: null,
       },
     };
   }
+}
+
+function coincideConMensaje(evento: EventoReporteChatwoot, creadoEnSegundos: number): boolean {
+  if (!evento.fin) return false;
+  const fin = new Date(evento.fin).getTime();
+  const mensaje = creadoEnSegundos * 1000;
+  return Number.isFinite(fin) && Math.abs(fin - mensaje) <= 15_000;
+}
+
+/**
+ * Informe operativo oficial para administradores. No se devuelve a asesores:
+ * el resumen es de toda la bandeja y el agrupado por agente abarca incluso
+ * otras bandejas de la cuenta de Chatwoot.
+ */
+async function cargarReporteOperativoChatwoot(
+  desde: string,
+  hasta: string,
+): Promise<ReporteOperativoChatwoot | null> {
+  if (!chatwoot.hayChatwoot) return null;
+
+  const [resumen, conversaciones, resoluciones, agentes, identidades] = await Promise.allSettled([
+    reportesChatwoot.resumenBandeja(desde, hasta),
+    reportesChatwoot.serieBandeja("conversations_count", desde, hasta),
+    reportesChatwoot.serieBandeja("resolutions_count", desde, hasta),
+    reportesChatwoot.resumenPorAgente(desde, hasta),
+    reportesChatwoot.agentesCuenta(),
+  ]);
+  const resultados = [resumen, conversaciones, resoluciones, agentes, identidades];
+  const exitos = resultados.filter((resultado) => resultado.status === "fulfilled").length;
+
+  for (const resultado of resultados) {
+    if (resultado.status === "rejected") {
+      console.error(
+        "[avansa] Reporte operativo Chatwoot incompleto",
+        resultado.reason instanceof Error ? resultado.reason.message : resultado.reason,
+      );
+    }
+  }
+
+  const serie = new Map<number, { conversaciones: number; resoluciones: number }>();
+  if (conversaciones.status === "fulfilled") {
+    for (const punto of conversaciones.value) {
+      const actual = serie.get(punto.timestamp) ?? { conversaciones: 0, resoluciones: 0 };
+      actual.conversaciones = punto.valor;
+      serie.set(punto.timestamp, actual);
+    }
+  }
+  if (resoluciones.status === "fulfilled") {
+    for (const punto of resoluciones.value) {
+      const actual = serie.get(punto.timestamp) ?? { conversaciones: 0, resoluciones: 0 };
+      actual.resoluciones = punto.valor;
+      serie.set(punto.timestamp, actual);
+    }
+  }
+
+  const nombres = new Map(
+    identidades.status === "fulfilled"
+      ? identidades.value.map((agente) => [agente.id, agente] as const)
+      : [],
+  );
+  const filas = agentes.status === "fulfilled"
+    ? agentes.value.map((agente): IdentidadChatwoot => ({
+        ...agente,
+        nombre: nombres.get(agente.id)?.nombre ?? `Agente ${agente.id}`,
+        email: nombres.get(agente.id)?.email ?? null,
+      }))
+    : [];
+
+  return {
+    estado: exitos === resultados.length ? "listo" : exitos === 0 ? "error" : "parcial",
+    detalle: exitos === resultados.length
+      ? "Resumen y tendencia limitados a la bandeja oficial; identidades agrupadas al alcance completo de la cuenta."
+      : "Chatwoot entregó sólo una parte del informe operativo; cada bloque conserva su alcance y fuente.",
+    resumen: resumen.status === "fulfilled" ? resumen.value : null,
+    tendencia: [...serie.entries()]
+      .sort(([a], [b]) => a - b)
+      .map(([timestamp, valores]) => ({ timestamp, ...valores })),
+    identidades: filas,
+  };
 }
 
 /**
@@ -267,7 +467,10 @@ export async function cargarRendimiento(
     await Promise.all([
       perfilesPromesa,
       supabase.from("leads").select(CAMPOS_LEAD).eq("es_demo", false),
-      supabase.from("conversaciones").select(CAMPOS_CONVERSACION),
+      supabase
+        .from("conversaciones")
+        .select(CAMPOS_CONVERSACION)
+        .eq("bandeja_id", chatwoot.bandejaId ?? -1),
       supabase.from("respuestas").select(CAMPOS_RESPUESTA),
     ]);
 
@@ -299,17 +502,23 @@ export async function cargarRendimiento(
     });
   }
 
-  const chat = conversacionesResultado.error || respuestasResultado.error
-    ? {
+  const chatPromesa: Promise<MetricasChatwoot> = conversacionesResultado.error || respuestasResultado.error
+    ? Promise.resolve({
         activasPorAsesor: new Map<string, number>(),
         primeraRespuestaPorAsesor: new Map<string, number[]>(),
+        respuestaMediaPorAsesor: new Map<string, number[]>(),
         estado: {
           estado: "error" as const,
           detalle: "No fue posible consultar el registro local de mensajería.",
           conversacionesRevisadas: 0,
+          fuenteRespuestas: null,
         },
-      }
-    : await metricasDeChatwoot(conversaciones, respuestas, desde, hasta);
+      })
+    : metricasDeChatwoot(conversaciones, respuestas, desde, hasta);
+  const reportePromesa = sesion.perfil.rol === "admin"
+    ? cargarReporteOperativoChatwoot(desdeIso, hastaIso)
+    : Promise.resolve(null);
+  const [chat, reporteChatwoot] = await Promise.all([chatPromesa, reportePromesa]);
 
   const filas = perfiles.map((asesor): FilaRendimiento => {
     const propios = leads.filter((lead) => lead.asesor_id === asesor.id);
@@ -324,6 +533,7 @@ export async function cargarRendimiento(
       return Number.isFinite(dias) && dias >= 0 ? [dias] : [];
     });
     const respuestasAsesor = chat.primeraRespuestaPorAsesor.get(asesor.id) ?? [];
+    const respuestasChatwoot = chat.respuestaMediaPorAsesor.get(asesor.id) ?? [];
 
     return {
       asesor,
@@ -341,6 +551,8 @@ export async function cargarRendimiento(
         : null,
       primeraRespuestaMinutos: promedio(respuestasAsesor),
       respuestasMedidas: respuestasAsesor.length,
+      respuestaMediaMinutos: promedio(respuestasChatwoot),
+      respuestasChatwootMedidas: respuestasChatwoot.length,
     };
   });
 
@@ -377,6 +589,7 @@ export async function cargarRendimiento(
         : 0,
       actualizadoEn: new Date().toISOString(),
       chatwoot: chat.estado,
+      reporteChatwoot,
     },
   };
 }

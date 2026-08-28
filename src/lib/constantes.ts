@@ -32,7 +32,7 @@ export type DefinicionEtapa = {
  */
 export const ETAPAS: DefinicionEtapa[] = [
   { clave: "nuevo",       nombre: "Nuevo",         descripcion: "Entró el formulario y ya tiene asesor asignado.", color: "#6B7785", probabilidad: 5,   enTablero: true },
-  { clave: "contactado",  nombre: "Contactado",    descripcion: "Ya hubo primer contacto por teléfono o WhatsApp.", color: "#0F2D3D", probabilidad: 15,  enTablero: true },
+  { clave: "contactado",  nombre: "Contactado",    descripcion: "Ya hubo primer contacto por teléfono o WhatsApp.", color: "#3B8298", probabilidad: 15,  enTablero: true },
   { clave: "diagnostico", nombre: "Revisión inicial", descripcion: "Revisando información, saldo y proyecto.",       color: "#FF4D6D", probabilidad: 30,  enTablero: true },
   { clave: "expediente",  nombre: "Expediente",    descripcion: "Integrando identidad, banco, tenencia y obra.",   color: "#D9AE83", probabilidad: 55,  enTablero: true },
   { clave: "revision",    nombre: "Revisión",      descripcion: "Doble validación antes de darlo por listo.",      color: "#2FB6A3", probabilidad: 75,  enTablero: true },
@@ -189,7 +189,7 @@ export const NATURALEZAS: Record<
     ayuda: "Pauta, contenido y herramientas de adquisición.",
   },
   gasto_operativo: {
-    nombre: "Gastos de operación", corto: "Operación", color: "#0F2D3D",
+    nombre: "Gastos de operación", corto: "Operación", color: "#3B8298",
     ayuda: "Nómina operativa, software y conectividad.",
   },
   gasto_administrativo: {
@@ -234,7 +234,7 @@ export const ROLES: Record<RolUsuario, { nombre: string; descripcion: string; co
     descripcion: "Ve y edita todo, incluidas finanzas y el equipo.",
   },
   asesor: {
-    nombre: "Asesor", color: "#0F2D3D",
+    nombre: "Asesor", color: "#3B8298",
     descripcion: "Trabaja únicamente sus leads, conversaciones y pipeline.",
   },
 };

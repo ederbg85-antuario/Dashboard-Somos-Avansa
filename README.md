@@ -150,10 +150,21 @@ Chatwoot recibe los mensajes del número oficial. Su webhook de cuenta llama a:
 POST /api/webhooks/chatwoot
 ```
 
-El endpoint acepta `conversation_created` y `message_created`, verifica sobre
-el cuerpo crudo la firma `X-Chatwoot-Signature` y el timestamp contra el
-secreto que entrega Chatwoot, ignora cualquier bandeja distinta de
-`CHATWOOT_BANDEJA_ID` y usa la llave de servicio sólo en el servidor para
+La opción preferida verifica sobre el cuerpo crudo `X-Chatwoot-Signature` y
+`X-Chatwoot-Timestamp` contra el secreto del webhook. Para instalaciones
+Chatwoot 4.11.x donde esos encabezados no sean verificables, registra la misma
+ruta con el secreto compartido como query param (codificado para URL):
+
+```text
+https://dashboard.somosavansa.com/api/webhooks/chatwoot?secret=<CHATWOOT_WEBHOOK_SECRET_URL_ENCODED>
+```
+
+Ese modo es sólo de compatibilidad: la URL debe usar HTTPS, no debe pegarse en
+tickets ni logs y debe reemplazarse por HMAC cuando se confirme una versión sin
+el desajuste. La comparación del query param es constante. En ambos modos, el
+endpoint acepta únicamente `conversation_created` y `message_created`, ignora
+cualquier cuenta o bandeja distinta de `CHATWOOT_CUENTA_ID` y
+`CHATWOOT_BANDEJA_ID`, y usa la llave de servicio sólo en el servidor para
 registrar y repartir la conversación. La pantalla consulta
 `/api/conversaciones`, que devuelve desde el servidor únicamente las filas
 permitidas para la sesión actual.
@@ -164,7 +175,7 @@ Variables requeridas:
 CHATWOOT_URL=https://chat.antuario.mx
 CHATWOOT_TOKEN=...
 CHATWOOT_CUENTA_ID=3
-CHATWOOT_BANDEJA_ID=4
+CHATWOOT_BANDEJA_ID=5
 CHATWOOT_WEBHOOK_SECRET=...
 SUPABASE_SERVICE_ROLE_KEY=...
 ```
@@ -173,11 +184,17 @@ SUPABASE_SERVICE_ROLE_KEY=...
 avansa, no a un bot ni al usuario personal de un administrador. Todas estas
 variables son privadas de servidor.
 
-Al conectar el número definitivo en Meta Developers hay que crear o seleccionar
-la bandeja de WhatsApp correspondiente en Chatwoot, actualizar
-`CHATWOOT_BANDEJA_ID`, registrar el webhook y verificar un mensaje entrante de
-extremo a extremo. El alta y el código de verificación del número se completan
-cuando el número esté disponible.
+Con esas mismas variables, `/rendimiento` consulta los endpoints oficiales de
+resumen, series, agrupación por agente y `reporting_events`. El resumen y las
+series quedan limitados a `CHATWOOT_BANDEJA_ID`. Los eventos sólo se atribuyen
+a un asesor después de cruzarlos con una conversación visible por RLS y un
+mensaje firmado desde el dashboard. El agrupado por agente de Chatwoot tiene
+alcance de cuenta y por eso aparece únicamente a administradores, rotulado
+como identidad técnica y separado del ranking comercial.
+
+La bandeja 5 corresponde al número oficial de Avansa en WhatsApp Cloud API. Al
+rotar el número o recrear la bandeja se debe actualizar `CHATWOOT_BANDEJA_ID`,
+el webhook de cuenta y volver a verificar un mensaje de extremo a extremo.
 
 ---
 
@@ -240,27 +257,66 @@ métricas define en el entorno del servidor:
 ```dotenv
 META_ACCESS_TOKEN=...       # token de sistema con ads_read
 META_AD_ACCOUNT_ID=...      # con o sin el prefijo act_
-META_API_VERSION=v23.0      # opcional
+META_API_VERSION=v26.0      # opcional; version fijada y revisable
 ```
 
 **Sincronizar con Meta** importa impresiones, alcance, clics, gasto y leads por
 campaña y día. La escritura es `upsert` sobre campaña y fecha para corregir
 cifras posteriores sin duplicarlas.
 
-El **Calendario** permite preparar publicaciones, historias y reels para
-Facebook e Instagram, programarlos en horario de México y conservar el archivo
-en el bucket privado `avansa-contenido`. Los borradores y su programación sí
-quedan registrados desde el panel. La publicación automática no se activa hasta
-que la app de Meta tenga los permisos oficiales, los activos de Avansa y un
-token técnico de contenido: no se usan tokens personales ni se publica por
-error al guardar un borrador.
+El **Calendario** prepara publicaciones, historias y reels, los programa en
+hora de México y conserva su archivo en el bucket privado
+`avansa-contenido`. Guardar o elegir una fecha no publica: cada salida requiere
+que un administrador marque **Autorizar envío automático** después de subir el
+archivo. Las filas antiguas quedan sin autorización aunque después se conecten
+credenciales.
 
-Para esa última conexión se requieren `META_PAGE_ID`,
-`META_INSTAGRAM_ACCOUNT_ID` y un token técnico exclusivo de publicación. Meta
-puede exigir verificación del negocio y revisión/advanced access según el
-permiso y el formato. Esta restricción es de Meta, no del dashboard. Cuando la
-conexión esté aprobada se habilita el publicador; antes de lanzar una campaña o
-publicar contenido se revisa el borrador, audiencia y presupuesto en el panel.
+Supabase Cron revisa cada cinco minutos únicamente piezas vencidas y
+autorizadas. La URL y el bearer del endpoint viven cifrados en Vault; esto evita
+la restricción diaria de Vercel Hobby. La cola usa un lease en Postgres para que
+dos ejecuciones no reclamen la misma fila, conserva por plataforma el
+contenedor o ID externo y no reintenta automáticamente una mutación cuyo
+resultado sea ambiguo. En ese caso muestra **Revisar** para confirmar primero
+en Meta y evitar duplicados.
+
+Formatos habilitados de manera deliberada:
+
+- Facebook: publicación de texto o una imagen JPG/PNG, y un reel MP4/MOV.
+- Instagram: una imagen JPG en feed, un reel MP4/MOV o una historia JPG/MP4/MOV.
+- Las historias de Instagram requieren cuenta Business. Las historias de
+  Facebook y los carruseles se guardan como planeación, pero este publicador no
+  los envía mientras no exista un flujo oficial implementado y probado.
+
+Los endpoints y límites de formato se contrastaron con las colecciones
+oficiales de Meta para [Facebook](https://www.postman.com/meta/facebook/documentation/r56bjfd/facebook-api)
+e [Instagram](https://www.postman.com/meta/instagram/documentation/6yqw8pt/instagram-api).
+
+La conexión usa `META_PAGE_ID`, `META_INSTAGRAM_ACCOUNT_ID` y
+`META_CONTENT_ACCESS_TOKEN`, un token técnico separado de Ads. Puede ser el
+token permanente de un System User al que se asignaron la Page y la cuenta de
+Instagram, con `pages_read_engagement`, `pages_manage_posts`,
+`instagram_basic` e `instagram_content_publish`; si se obtiene mediante
+Facebook Login también se usa `pages_show_list` para descubrir los activos. La
+identidad necesita la tarea de Page para crear contenido. Meta puede exigir
+verificación del negocio, modo Live y revisión/Advanced Access según quién use
+la app.
+
+`CRON_SECRET` protege `/api/cron/publicar-contenido`. Supabase Vault guarda
+el mismo valor como `avansa_publicador_cron_secret`, y
+`avansa_publicador_url` contiene la URL de producción. La migración programa
+la invocación con `pg_cron` y `pg_net` si ambos secretos ya existen; si todavía
+faltan, termina sin bloquear el despliegue y deja el cron apagado. Después de
+guardarlos en Vault ejecuta desde SQL Editor:
+
+```sql
+select private.configurar_cron_publicacion_social();
+```
+
+El resultado debe ser `true`. Ningún secreto queda escrito en `cron.job` y los
+`request_id`, códigos HTTP y timeouts quedan 90 días en
+`private.solicitudes_publicador_cron`, sin URL, headers ni cuerpo. El medio
+sigue privado: el servidor entrega a Meta una URL firmada de seis horas y nunca
+expone el token al navegador.
 
 ## Google Analytics y Search Console
 
@@ -292,6 +348,10 @@ base; las más recientes endurecen permisos y completan la operación actual:
 | `20260827221500` | Ajustes posteriores de privilegios, políticas e índices. |
 | `20260828012858` | Conexión OAuth de Google, calendario editorial, medios privados y RLS de marketing. |
 | `20260828015500` | Índices de las relaciones de las integraciones y el calendario. |
+| `20260828025916` | Aprobación explícita, lease e intentos idempotentes de la cola social. |
+| `20260828034800` | Ejecución cada cinco minutos con Supabase Cron y secretos en Vault. |
+| `20260828050000` | Fencing, RLS reproducible, aprobación versionada y cron observable/tolerante. |
+| `20260828053000` | Invalida la aprobación si se elimina al usuario que autorizó la pieza. |
 
 Antes de aplicar migraciones con la CLI, compara el historial local con
 `supabase_migrations.schema_migrations`; no renombres ni reapliques versiones

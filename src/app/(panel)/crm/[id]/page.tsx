@@ -137,7 +137,7 @@ export default async function Expediente({ params }: { params: Promise<{ id: str
         )}
 
         {l.mensaje && (
-          <blockquote className="mt-4 rounded-xl border-l-[3px] border-coral bg-mist px-4 py-3 text-[0.85rem] leading-relaxed text-ink">
+          <blockquote className="mt-4 rounded-xl bg-mist px-4 py-3 text-[0.85rem] leading-relaxed text-ink shadow-inner">
             <p>“{l.mensaje}”</p>
             <footer className="mt-1.5 text-[0.72rem] text-slate">
               Lo que escribió en el formulario del sitio.

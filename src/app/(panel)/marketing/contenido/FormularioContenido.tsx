@@ -5,23 +5,30 @@ import { Boton } from "@/components/ui/Boton";
 import { Campo, CampoSelect, CampoTexto, Casilla } from "@/components/ui/Campo";
 import { Icono } from "@/components/ui/Icono";
 import { clienteNavegador } from "@/lib/supabase/navegador";
-import { guardarContenido, registrarMediosContenido } from "../acciones";
+import { autorizarContenido, guardarContenido, registrarMediosContenido } from "../acciones";
 
 const FORMATOS = new Set(["image/jpeg", "image/png", "image/webp", "video/mp4", "video/quicktime"]);
 
-export function FormularioContenido() {
+export function FormularioContenido({ publicacionDisponible }: { publicacionDisponible: boolean }) {
   const formulario = useRef<HTMLFormElement>(null);
   const [archivos, setArchivos] = useState<File[]>([]);
   const [estado, setEstado] = useState<{ malo: boolean; texto: string } | null>(null);
   const [guardando, setGuardando] = useState(false);
+  const [tipo, setTipo] = useState("publicacion");
+  const [estadoPieza, setEstadoPieza] = useState("borrador");
 
   async function enviar(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (guardando) return;
     const fd = new FormData(event.currentTarget);
+    const autorizar = fd.get("autorizar_publicacion") === "si";
     const validos = archivos.filter((archivo) => FORMATOS.has(archivo.type));
     if (validos.length !== archivos.length) {
       setEstado({ malo: true, texto: "Usa JPG, PNG, WEBP, MP4 o MOV." });
+      return;
+    }
+    if (validos.length > 1) {
+      setEstado({ malo: true, texto: "Adjunta un solo archivo por pieza." });
       return;
     }
     if (validos.some((archivo) => archivo.size > 100 * 1024 * 1024)) {
@@ -69,10 +76,26 @@ export function FormularioContenido() {
       }
     }
 
+    let aviso = contenido.aviso;
+    if (autorizar) {
+      const autorizacion = await autorizarContenido(contenido.id);
+      if (!autorizacion.ok) {
+        setGuardando(false);
+        setEstado({
+          malo: true,
+          texto: `La pieza quedo guardada, pero no se autorizo: ${autorizacion.error}`,
+        });
+        return;
+      }
+      aviso = autorizacion.aviso ?? aviso;
+    }
+
     formulario.current?.reset();
     setArchivos([]);
+    setTipo("publicacion");
+    setEstadoPieza("borrador");
     setGuardando(false);
-    setEstado({ malo: false, texto: contenido.aviso });
+    setEstado({ malo: false, texto: aviso });
   }
 
   return (
@@ -82,12 +105,14 @@ export function FormularioContenido() {
         placeholder="Texto que acompañará la publicación. Puedes dejarlo pendiente y completarlo después." />
 
       <div className="grid gap-3 sm:grid-cols-2">
-        <CampoSelect etiqueta="Formato" name="tipo" defaultValue="publicacion">
+        <CampoSelect etiqueta="Formato" name="tipo" value={tipo}
+          onChange={(event) => setTipo(event.target.value)}>
           <option value="publicacion">Publicación</option>
           <option value="historia">Historia</option>
           <option value="reel">Reel</option>
         </CampoSelect>
-        <CampoSelect etiqueta="Estado" name="estado" defaultValue="borrador">
+        <CampoSelect etiqueta="Estado" name="estado" value={estadoPieza}
+          onChange={(event) => setEstadoPieza(event.target.value)}>
           <option value="borrador">Borrador</option>
           <option value="programado">Programar</option>
         </CampoSelect>
@@ -101,24 +126,37 @@ export function FormularioContenido() {
         <div className="mt-1 grid gap-2 sm:grid-cols-2">
           <Casilla name="plataformas" value="instagram" defaultChecked etiqueta="Instagram"
             descripcion="Feed, reel o historia según el formato." />
-          <Casilla name="plataformas" value="facebook" etiqueta="Facebook"
-            descripcion="Publicación y formatos compatibles." />
+          <Casilla name="plataformas" value="facebook" etiqueta="Facebook" disabled={tipo === "historia"}
+            descripcion={tipo === "historia" ? "Las historias se envían sólo a Instagram." : "Publicación o reel compatible."} />
         </div>
       </fieldset>
 
       <label className="block rounded-xl border border-dashed border-hair-fuerte bg-mist px-3.5 py-3">
         <span className="text-[0.78rem] font-semibold text-ink">Archivo visual</span>
-        <input type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime" multiple
+        <input type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime"
           className="mt-2 block w-full text-[0.76rem] text-slate file:mr-3 file:rounded-lg file:border-0 file:bg-white file:px-2.5 file:py-1.5 file:text-[0.74rem] file:font-semibold file:text-ink file:ring-1 file:ring-hair"
           onChange={(event) => setArchivos([...event.target.files ?? []])} />
-        <span className="mt-1.5 block text-[0.72rem] leading-snug text-slate">JPG, PNG, WEBP, MP4 o MOV. Hasta 100 MB por archivo; se guardan privados.</span>
+        <span className="mt-1.5 block text-[0.72rem] leading-snug text-slate">Una pieza: JPG, PNG, WEBP, MP4 o MOV, hasta 100 MB. Instagram feed requiere JPG; el archivo se guarda privado.</span>
       </label>
 
       {archivos.length > 0 && (
         <p className="text-[0.74rem] text-slate">{archivos.length} archivo{archivos.length === 1 ? "" : "s"} listo{archivos.length === 1 ? "" : "s"} para subir.</p>
       )}
-      <p className="rounded-xl bg-sand-50 px-3 py-2.5 text-[0.74rem] leading-snug text-sand-700">
-        Programar lo deja en el calendario. La publicación automática se activa cuando quede aprobada la conexión oficial de Meta.
+      {estadoPieza === "programado" && (
+        <div className="rounded-xl bg-sand-50 px-3 py-2.5 text-sand-700">
+          <Casilla
+            name="autorizar_publicacion"
+            value="si"
+            disabled={!publicacionDisponible}
+            etiqueta="Autorizar envío automático"
+            descripcion={publicacionDisponible
+              ? "Aprobación explícita: primero se validan token y activos; después la cola la enviará a partir de la fecha elegida."
+              : "Disponible cuando estén configurados el token técnico y los activos oficiales de Meta."}
+          />
+        </div>
+      )}
+      <p className="rounded-xl bg-teal-50 px-3 py-2.5 text-[0.74rem] leading-snug text-teal-700">
+        Guardar o programar nunca publica por sí solo. Sólo salen las piezas con autorización explícita; no se reenvían operaciones ambiguas.
       </p>
       {estado && (
         <p role={estado.malo ? "alert" : "status"}

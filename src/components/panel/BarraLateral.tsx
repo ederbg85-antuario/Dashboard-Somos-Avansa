@@ -9,6 +9,7 @@ import { ROLES } from "@/lib/constantes";
 import { iniciales } from "@/lib/formato";
 import type { RolUsuario } from "@/lib/supabase/tipos";
 import { CerrarSesion } from "./CerrarSesion";
+import { SelectorTema } from "./SelectorTema";
 import type { Grupo } from "./navegacion";
 
 /**
@@ -41,10 +42,10 @@ export function BarraLateral({
   return (
     <>
       <div className="sticky top-0 z-30 px-3 pt-3 lg:hidden">
-        <div className="flex h-14 items-center justify-between gap-3 rounded-2xl bg-white/90 px-4 shadow-elevada backdrop-blur-xl">
+        <div className="barra-avansa flex h-14 items-center justify-between gap-3 rounded-2xl px-4 shadow-elevada backdrop-blur-xl">
           <Link href="/" className="flex items-center">
             <Image
-              src="/marca/logo/avansa-logo.svg"
+              src="/marca/logo/avansa-logo-on-dark.svg"
               alt="avansa"
               width={116}
               height={24}
@@ -55,7 +56,7 @@ export function BarraLateral({
           <button
             type="button"
             onClick={() => setAbierta((valor) => !valor)}
-            className="grid size-9 place-items-center rounded-xl text-deep transition hover:bg-coral-50 hover:text-coral"
+            className="grid size-9 place-items-center rounded-xl text-white/70 transition hover:bg-white/10 hover:text-white"
             aria-label={abierta ? "Cerrar menú" : "Abrir menú"}
             aria-expanded={abierta}
             aria-controls="navegacion-principal"
@@ -84,7 +85,7 @@ export function BarraLateral({
         <div className="relative flex h-[4.6rem] shrink-0 items-center justify-between gap-2 px-5">
           <Link href="/" onClick={() => setAbierta(false)} className="flex items-center">
             <Image
-              src="/marca/logo/avansa-logo.svg"
+              src="/marca/logo/avansa-logo-on-dark.svg"
               alt="avansa · inicio"
               width={130}
               height={27}
@@ -95,7 +96,7 @@ export function BarraLateral({
           <button
             type="button"
             onClick={() => setAbierta(false)}
-            className="grid size-8 place-items-center rounded-xl text-slate transition hover:bg-coral-50 hover:text-coral lg:hidden"
+            className="grid size-8 place-items-center rounded-xl text-white/55 transition hover:bg-white/10 hover:text-white lg:hidden"
             aria-label="Cerrar menú"
           >
             <Icono nombre="cruz" className="size-4" />
@@ -103,16 +104,16 @@ export function BarraLateral({
         </div>
 
         <div className="relative px-4 pb-4">
-          <p className="inline-flex items-center gap-2 rounded-full bg-white/75 px-3 py-1.5 text-[0.62rem] font-semibold uppercase tracking-[0.16em] text-slate shadow-tarjeta">
+          <p className="inline-flex items-center gap-2 rounded-full bg-white/[0.07] px-3 py-1.5 text-[0.62rem] font-semibold uppercase tracking-[0.16em] text-white/60 shadow-tarjeta">
             <span className="size-1.5 rounded-full bg-coral" aria-hidden="true" />
             Sistema integral
           </p>
         </div>
 
-        <nav className="relative min-h-0 flex-1 overflow-y-auto px-3 pb-4" aria-label="Secciones del sistema">
+        <nav className="scroll-oscuro relative min-h-0 flex-1 overflow-y-auto px-3 pb-4" aria-label="Secciones del sistema">
           {grupos.map((grupo) => (
             <div key={grupo.titulo} className="mb-5 last:mb-0">
-              <p className="mb-1.5 px-3 text-[0.63rem] font-semibold uppercase tracking-[0.15em] text-slate-400">
+              <p className="mb-1.5 px-3 text-[0.63rem] font-semibold uppercase tracking-[0.15em] text-white/50">
                 {grupo.titulo}
               </p>
               <ul className="space-y-0.5">
@@ -140,20 +141,20 @@ export function BarraLateral({
                           title={entrada.descripcion}
                           className={`group relative flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[0.83rem] font-medium transition ${
                             esta
-                              ? "bg-coral-50 text-deep shadow-tarjeta"
-                              : "text-slate hover:bg-white/80 hover:text-deep hover:shadow-tarjeta"
+                              ? "bg-white/[0.11] text-white shadow-[0_8px_22px_-14px_rgb(0_0_0/.7),inset_0_1px_0_rgb(255_255_255/.06)]"
+                              : "text-white/65 hover:bg-white/[0.07] hover:text-white"
                           }`}
                         >
                           <Icono
                             nombre={entrada.icono}
                             className={`size-[18px] shrink-0 ${
-                              esta ? "text-coral" : "text-slate-400 group-hover:text-coral"
+                              esta ? "text-coral" : "text-white/35 group-hover:text-coral"
                             }`}
                           />
                           <span className="min-w-0 flex-1">{entrada.etiqueta}</span>
                           <Icono
                             nombre="chevron"
-                            className={`size-4 shrink-0 text-slate-400 transition-transform duration-300 ${
+                            className={`size-4 shrink-0 text-white/30 transition-transform duration-300 ${
                               submenuAbierto ? "rotate-90" : ""
                             }`}
                           />
@@ -173,15 +174,15 @@ export function BarraLateral({
                                     title={subentrada.descripcion}
                                     className={`group/sub flex items-center gap-2.5 rounded-xl px-3 py-2 text-[0.75rem] font-medium transition ${
                                       subentradaActiva
-                                        ? "bg-white text-deep shadow-tarjeta"
-                                        : "text-slate hover:bg-white/70 hover:text-deep"
+                                        ? "bg-white/[0.1] text-white shadow-[inset_0_1px_0_rgb(255_255_255/.05)]"
+                                        : "text-white/60 hover:bg-white/[0.06] hover:text-white"
                                     }`}
                                   >
                                     <span
                                       className={`size-1.5 shrink-0 rounded-full transition ${
                                         subentradaActiva
                                           ? "bg-coral"
-                                          : "bg-slate-400/50 group-hover/sub:bg-coral/70"
+                                          : "bg-white/25 group-hover/sub:bg-coral/70"
                                       }`}
                                       aria-hidden="true"
                                     />
@@ -205,20 +206,14 @@ export function BarraLateral({
                         title={entrada.descripcion}
                         className={`group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-[0.83rem] font-medium transition ${
                           esta
-                            ? "bg-coral-50 text-deep shadow-tarjeta"
-                            : "text-slate hover:bg-white/80 hover:text-deep hover:shadow-tarjeta"
+                            ? "bg-white/[0.11] text-white shadow-[0_8px_22px_-14px_rgb(0_0_0/.7),inset_0_1px_0_rgb(255_255_255/.06)]"
+                            : "text-white/65 hover:bg-white/[0.07] hover:text-white"
                         }`}
                       >
-                        {esta ? (
-                          <span
-                            className="absolute left-1 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-full bg-coral"
-                            aria-hidden="true"
-                          />
-                        ) : null}
                         <Icono
                           nombre={entrada.icono}
                           className={`size-[18px] shrink-0 ${
-                            esta ? "text-coral" : "text-slate-400 group-hover:text-coral"
+                            esta ? "text-coral" : "text-white/35 group-hover:text-coral"
                           }`}
                         />
                         {entrada.etiqueta}
@@ -232,10 +227,11 @@ export function BarraLateral({
         </nav>
 
         <div className="relative shrink-0 p-3">
-          <div className="flex items-center gap-2 rounded-2xl bg-white/75 p-2 shadow-tarjeta backdrop-blur-sm">
+          <SelectorTema />
+          <div className="mt-2 flex items-center gap-2 rounded-2xl bg-white/[0.07] p-2 shadow-[inset_0_1px_0_rgb(255_255_255/.05),0_12px_28px_-18px_rgb(0_0_0/.8)] backdrop-blur-sm">
             <Link
               href="/perfil"
-              className="flex min-w-0 flex-1 items-center gap-3 rounded-xl p-1 transition hover:bg-coral-50"
+              className="flex min-w-0 flex-1 items-center gap-3 rounded-xl p-1 transition hover:bg-white/[0.07]"
               onClick={() => setAbierta(false)}
             >
               <span
@@ -245,8 +241,8 @@ export function BarraLateral({
                 {!avatarUrl && iniciales(nombre)}
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-[0.82rem] font-semibold text-deep">{nombre}</span>
-                <span className="block truncate text-[0.7rem] text-slate" title={email}>
+                <span className="block truncate text-[0.82rem] font-semibold text-white">{nombre}</span>
+                <span className="block truncate text-[0.7rem] text-white/60" title={email}>
                   {ROLES[rol].nombre}
                 </span>
               </span>

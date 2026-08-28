@@ -386,7 +386,7 @@ async function BloqueFinanciero() {
           rotulo="Margen bruto"
           valor={porcentaje(ultimo.margenBruto)}
           icono="destello"
-          acento="#0F2D3D"
+          acento="var(--grafica-deep)"
           apoyo={`${dineroCorto(ultimo.utilidadBruta)} de utilidad bruta`}
           variacion={anterior && anterior.margenBruto !== null && ultimo.margenBruto !== null
             ? ultimo.margenBruto - anterior.margenBruto

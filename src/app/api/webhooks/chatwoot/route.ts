@@ -1,36 +1,17 @@
-import { createHmac, timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
+import {
+  firmaValidaChatwoot,
+  interpretarEventoChatwoot,
+  secretoCompartidoValido,
+} from "@/lib/chatwoot/webhook";
 import { clienteServicio } from "@/lib/supabase/servicio";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function coincideSecreto(recibido: string | null, esperado: string) {
-  if (!recibido) return false;
-  const a = Buffer.from(recibido);
-  const b = Buffer.from(esperado);
-  return a.length === b.length && timingSafeEqual(a, b);
-}
-
-function firmaValida(cuerpo: string, firma: string | null, timestamp: string | null, secreto: string) {
-  if (!firma || !timestamp || !/^\d{10,}$/.test(timestamp)) return false;
-
-  const instante = Number(timestamp);
-  const ahora = Math.floor(Date.now() / 1000);
-  if (!Number.isSafeInteger(instante) || Math.abs(ahora - instante) > 300) return false;
-
-  const esperada = `sha256=${createHmac("sha256", secreto)
-    .update(`${timestamp}.${cuerpo}`)
-    .digest("hex")}`;
-  return coincideSecreto(firma, esperada);
-}
-
-type Objeto = Record<string, unknown>;
-const objeto = (v: unknown): Objeto => v && typeof v === "object" ? v as Objeto : {};
-const texto = (v: unknown) => typeof v === "string" ? v : null;
 const numero = (v: unknown) => {
   const n = Number(v);
-  return Number.isInteger(n) && n > 0 ? n : null;
+  return Number.isSafeInteger(n) && n > 0 ? n : null;
 };
 
 /**
@@ -39,48 +20,47 @@ const numero = (v: unknown) => {
  */
 export async function POST(req: Request) {
   const secreto = process.env.CHATWOOT_WEBHOOK_SECRET;
+  const cuentaPermitida = numero(process.env.CHATWOOT_CUENTA_ID);
   const bandejaPermitida = numero(process.env.CHATWOOT_BANDEJA_ID);
-  if (!secreto || !bandejaPermitida) {
+  if (!secreto || !cuentaPermitida || !bandejaPermitida) {
     return NextResponse.json({ error: "Webhook no configurado" }, { status: 503 });
   }
 
   const cuerpo = await req.text();
-  if (!firmaValida(
+  const hmacValido = firmaValidaChatwoot(
     cuerpo,
     req.headers.get("x-chatwoot-signature"),
     req.headers.get("x-chatwoot-timestamp"),
     secreto,
-  )) {
+  );
+  // Compatibilidad con Chatwoot 4.11.x: algunas instalaciones no pueden
+  // verificar el secreto que firma los headers. La URL del webhook puede
+  // llevar `?secret=<CHATWOOT_WEBHOOK_SECRET>`; se compara en tiempo constante
+  // y no sustituye los filtros posteriores de cuenta y bandeja.
+  const secretoURLValido = secretoCompartidoValido(
+    new URL(req.url).searchParams.get("secret"),
+    secreto,
+  );
+  if (!hmacValido && !secretoURLValido) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 
-  let payload: Objeto;
+  let payload: unknown;
   try {
-    payload = objeto(JSON.parse(cuerpo));
+    payload = JSON.parse(cuerpo);
   } catch {
     return NextResponse.json({ error: "Cuerpo inválido" }, { status: 400 });
   }
 
-  const evento = texto(payload.event);
-  if (evento !== "conversation_created" && evento !== "message_created") {
-    return NextResponse.json({ ok: true, ignored: true });
+  const interpretacion = interpretarEventoChatwoot(payload);
+  if (!interpretacion.ok) {
+    return NextResponse.json({ ok: true, ignored: true, reason: interpretacion.motivo });
   }
-
-  const conversacion = objeto(payload.conversation);
-  const meta = objeto(conversacion.meta);
-  const emisorMeta = objeto(meta.sender);
-  const emisorMensaje = objeto(payload.sender);
-  const contacto = Object.keys(emisorMeta).length ? emisorMeta : emisorMensaje;
-  const inbox = objeto(conversacion.inbox);
-
-  const conversacionId = numero(conversacion.id ?? payload.conversation_id);
-  const bandejaId = numero(conversacion.inbox_id ?? inbox.id);
-  const telefono = texto(contacto.phone_number);
-
-  if (!conversacionId || !bandejaId || !telefono) {
-    return NextResponse.json({ ok: true, ignored: true, reason: "sin-contacto" });
+  const datos = interpretacion.datos;
+  if (datos.cuentaId !== cuentaPermitida) {
+    return NextResponse.json({ ok: true, ignored: true, reason: "otra-cuenta" });
   }
-  if (bandejaId !== bandejaPermitida) {
+  if (datos.bandejaId !== bandejaPermitida) {
     return NextResponse.json({ ok: true, ignored: true, reason: "otra-bandeja" });
   }
 
@@ -88,12 +68,12 @@ export async function POST(req: Request) {
   if (!supabase) return NextResponse.json({ error: "Servicio no configurado" }, { status: 503 });
 
   const { data, error } = await supabase.rpc("registrar_conversacion_whatsapp", {
-    p_conversacion_id: conversacionId,
-    p_bandeja_id: bandejaId,
-    p_nombre: texto(contacto.name) ?? telefono,
-    p_telefono: telefono,
-    p_email: texto(contacto.email),
-    p_mensaje_inicial: texto(payload.content),
+    p_conversacion_id: datos.conversacionId,
+    p_bandeja_id: datos.bandejaId,
+    p_nombre: datos.nombre,
+    p_telefono: datos.telefono,
+    p_email: datos.email,
+    p_mensaje_inicial: datos.mensajeInicial,
   });
 
   if (error) {

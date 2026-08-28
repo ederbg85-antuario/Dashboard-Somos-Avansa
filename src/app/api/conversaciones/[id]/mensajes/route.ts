@@ -12,7 +12,9 @@ const LARGO_MAX = 4000; // WhatsApp corta en 4096; se deja margen.
 /** Mismo trámite en las dos operaciones: sesión, id válido y permiso. */
 async function permiso(params: Promise<{ id: string }>) {
   const sesion = await obtenerSesion();
-  if (!sesion) return { error: NextResponse.json({ error: "Sin sesión" }, { status: 401 }) };
+  if (!sesion || !sesion.perfil.activo) {
+    return { error: NextResponse.json({ error: "Sin sesión" }, { status: 401 }) };
+  }
 
   const { id } = await params;
   const conversacion = Number(id);
@@ -34,7 +36,25 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
   if (p.error) return p.error;
 
   try {
-    return NextResponse.json({ mensajes: await cargarMensajes(p.conversacion, p.sesion) });
+    const mensajes = await cargarMensajes(p.conversacion, p.sesion);
+    // Cierra la carrera con una reasignación administrativa que ocurra
+    // mientras Chatwoot devuelve el hilo.
+    if (!(await puedeVer(p.conversacion))) {
+      return NextResponse.json({ error: "No encontrada" }, { status: 404 });
+    }
+    // Sólo quien atiende limpia el pendiente. Una visita de supervisión del
+    // admin no debe quitarle al asesor su señal de mensaje nuevo.
+    if (p.sesion.perfil.rol === "asesor") {
+      try {
+        await cw.marcarLeida(p.conversacion);
+      } catch (e) {
+        console.error(
+          "[avansa] No se pudo marcar la conversación como leída:",
+          e instanceof cw.ErrorChatwoot ? e.estado : "desconocido",
+        );
+      }
+    }
+    return NextResponse.json({ mensajes });
   } catch (e) {
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "Error al leer los mensajes" },
@@ -77,6 +97,12 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     );
   }
 
+  // El permiso pudo cambiar mientras se validaba el cuerpo. Evita responder
+  // una conversación que un administrador acaba de entregar a otra persona.
+  if (!(await puedeVer(p.conversacion))) {
+    return NextResponse.json({ error: "No encontrada" }, { status: 404 });
+  }
+
   const supabase = await clienteServidor();
 
   let enviado;
@@ -89,14 +115,15 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     );
   }
 
-  try {
-    await supabase.from("respuestas").insert({
-      mensaje_id: enviado.id,
-      conversacion_id: p.conversacion,
-      autor_id: p.sesion.usuarioId,
-    });
-  } catch (e) {
-    console.error("El mensaje salió pero no se pudo firmar:", e);
+  const { error: errorFirma } = await supabase.from("respuestas").insert({
+    mensaje_id: enviado.id,
+    conversacion_id: p.conversacion,
+    autor_id: p.sesion.usuarioId,
+  });
+  if (errorFirma) {
+    // supabase-js devuelve los errores en el resultado; no lanza una
+    // excepción. El envío sí ocurrió, así que sólo se registra la anomalía.
+    console.error("[avansa] El mensaje salió pero no se pudo firmar:", errorFirma.code);
   }
 
   return NextResponse.json({ id: enviado.id }, { status: 201 });

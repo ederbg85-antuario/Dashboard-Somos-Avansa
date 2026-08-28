@@ -62,7 +62,13 @@
 
 /* ---------- base ---------- */
 
-html { -webkit-text-size-adjust: 100%; }
+html {
+  --superficie: #fff;
+  --superficie-elevada: #fff;
+  --punto-grafica: #fff;
+  --grafica-deep: #0f2d3d;
+  -webkit-text-size-adjust: 100%;
+}
 
 body {
   background:
@@ -75,14 +81,159 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-/* El menú vive en una superficie clara y cálida, como las tarjetas del hero.
-   Las manchas son estáticas: aportan marca sin competir con la navegación. */
+/* La navegación siempre es oscura para separar el espacio de trabajo de los
+   controles globales. Las manchas son estáticas y deliberadamente suaves. */
 .barra-avansa {
   background:
-    radial-gradient(circle at 104% -2%, rgb(255 77 109 / .18), transparent 12rem),
-    radial-gradient(circle at -8% 103%, rgb(47 182 163 / .14), transparent 14rem),
-    linear-gradient(155deg, #fff 0%, #fbfbfc 55%, #fff7f9 100%);
-  box-shadow: var(--shadow-flotante);
+    radial-gradient(circle at 105% -3%, rgb(255 77 109 / .17), transparent 13rem),
+    radial-gradient(circle at -10% 104%, rgb(47 182 163 / .13), transparent 15rem),
+    linear-gradient(155deg, #081820 0%, #0c2633 52%, #103543 100%);
+  box-shadow: 0 5px 14px rgb(2 13 19 / .2), 0 34px 72px -22px rgb(2 13 19 / .72);
+}
+
+.barra-avansa option {
+  background: #fff;
+  color: #0f2d3d;
+}
+
+/* Tema oscuro: los tokens de contenido cambian, no los colores de marca. */
+html[data-theme="dark"] {
+  --color-ink: #f3f7f9;
+  --color-slate: #a7b4bd;
+  --color-slate-400: #7f909b;
+  --color-coral-700: #ff8097;
+  --color-teal-700: #61d7c6;
+  --color-coral-50: #34202a;
+  --color-teal-50: #15332f;
+  --color-sand-50: #32291f;
+  --color-mist: #08151d;
+  --color-paper: #0b1b24;
+  --color-hair: #20343f;
+  --color-hair-fuerte: #2b4856;
+  --superficie: #10242e;
+  --superficie-elevada: #132a35;
+  --punto-grafica: #10242e;
+  --grafica-deep: #61d7c6;
+  --shadow-tarjeta: 0 1px 2px rgb(0 0 0 / .18), 0 14px 34px -18px rgb(0 0 0 / .72);
+  --shadow-elevada: 0 2px 7px rgb(0 0 0 / .2), 0 24px 56px -22px rgb(0 0 0 / .78);
+  --shadow-flotante: 0 5px 14px rgb(0 0 0 / .24), 0 34px 72px -24px rgb(0 0 0 / .82);
+  color-scheme: dark;
+}
+
+html[data-theme="dark"] body {
+  background:
+    radial-gradient(circle at 96% 2%, rgb(255 77 109 / .08), transparent 28rem),
+    radial-gradient(circle at 8% 94%, rgb(47 182 163 / .07), transparent 30rem),
+    var(--color-mist);
+}
+
+/* `white` es un color nativo de Tailwind y no un token de marca. Se cambia
+   sólo cuando representa una superficie; `text-white` conserva contraste. */
+html[data-theme="dark"] .bg-white { background-color: var(--superficie); }
+html[data-theme="dark"] .bg-white\/70 { background-color: rgb(16 36 46 / .7); }
+html[data-theme="dark"] .bg-white\/75 { background-color: rgb(16 36 46 / .75); }
+html[data-theme="dark"] .bg-white\/80 { background-color: rgb(16 36 46 / .8); }
+html[data-theme="dark"] .bg-white\/90 { background-color: rgb(16 36 46 / .9); }
+html[data-theme="dark"] .hover\:bg-white:hover { background-color: var(--superficie-elevada); }
+html[data-theme="dark"] .hover\:bg-white\/70:hover { background-color: rgb(19 42 53 / .8); }
+html[data-theme="dark"] .hover\:bg-white\/80:hover { background-color: rgb(19 42 53 / .86); }
+html[data-theme="dark"] .text-deep { color: #eaf2f5; }
+
+html[data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+}
+
+/* El hilo conserva la gramática visual de WhatsApp en ambos temas. */
+.chat-whatsapp {
+  --wa-panel: #f0f2f5;
+  --wa-lienzo: #efeae2;
+  --wa-lienzo-punto: rgb(11 92 77 / .07);
+  --wa-entrante: #fff;
+  --wa-saliente: #d9fdd3;
+  --wa-texto: #111b21;
+  --wa-suave: #667781;
+  --wa-fecha: rgb(247 255 255 / .95);
+  background: var(--wa-panel);
+  color: var(--wa-texto);
+}
+
+html[data-theme="dark"] .chat-whatsapp {
+  --wa-panel: #202c33;
+  --wa-lienzo: #0b141a;
+  --wa-lienzo-punto: rgb(134 150 160 / .08);
+  --wa-entrante: #202c33;
+  --wa-saliente: #005c4b;
+  --wa-texto: #e9edef;
+  --wa-suave: #8696a0;
+  --wa-fecha: rgb(24 34 41 / .96);
+}
+
+.chat-whatsapp .wa-panel { background: var(--wa-panel); }
+.chat-whatsapp .wa-canvas {
+  background-color: var(--wa-lienzo);
+  background-image: radial-gradient(circle at center, var(--wa-lienzo-punto) 1px, transparent 1.2px);
+  background-size: 18px 18px;
+}
+.chat-whatsapp .wa-entrante { background: var(--wa-entrante); color: var(--wa-texto); }
+.chat-whatsapp .wa-saliente { background: var(--wa-saliente); color: var(--wa-texto); }
+.chat-whatsapp .wa-text { color: var(--wa-texto); }
+.chat-whatsapp .wa-muted,
+.chat-whatsapp .wa-hora { color: var(--wa-suave); }
+.chat-whatsapp .wa-date { background: var(--wa-fecha); color: var(--wa-suave); }
+.chat-whatsapp .wa-input {
+  background: var(--wa-entrante);
+  color: var(--wa-texto);
+}
+.chat-whatsapp .wa-input::placeholder { color: var(--wa-suave); }
+.chat-whatsapp .wa-input option { background: var(--wa-entrante); color: var(--wa-texto); }
+
+.selector-periodo__opcion[data-activo="true"] {
+  background: #0a2130;
+  color: #fff;
+  box-shadow: 0 5px 14px -8px rgb(10 33 48 / .72);
+}
+
+html[data-theme="dark"] .selector-periodo {
+  background: var(--superficie-elevada);
+}
+
+html[data-theme="dark"] .selector-periodo__opcion[data-activo="true"] {
+  background: #f3f7f9;
+  color: #0a2130;
+  box-shadow: 0 7px 18px -10px rgb(0 0 0 / .9);
+}
+
+/* El panel separa superficies con elevación y espacio, no con contornos. Los
+   anillos de foco permanecen: son estado interactivo, no decoración. */
+.dashboard-sin-bordes :where(
+  .border,
+  .border-t,
+  .border-r,
+  .border-b,
+  .border-l,
+  .border-x,
+  .border-y,
+  [class*="border-t-"],
+  [class*="border-r-"],
+  [class*="border-b-"],
+  [class*="border-l-"],
+  [class*="border-x-"],
+  [class*="border-y-"]
+) {
+  border-width: 0 !important;
+}
+
+.dashboard-sin-bordes :where(.ring-1, .ring-4) {
+  --tw-ring-shadow: 0 0 #0000 !important;
+}
+
+.dashboard-sin-bordes :where(
+  .divide-y > :not(:last-child),
+  .divide-x > :not(:last-child),
+  [class*="divide-y-"] > :not(:last-child),
+  [class*="divide-x-"] > :not(:last-child)
+) {
+  border-width: 0 !important;
 }
 
 ::selection { background: var(--color-coral); color: #fff; }
