@@ -66,7 +66,7 @@ export default async function Expediente({ params }: { params: Promise<{ id: str
       </div>
 
       {/* ---------- cabecera del expediente ---------- */}
-      <Tarjeta className="mb-4">
+      <Tarjeta className="relative mb-5 animate-entrar overflow-hidden !ring-0 shadow-flotante">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
@@ -148,7 +148,7 @@ export default async function Expediente({ params }: { params: Promise<{ id: str
 
       <div className="grid gap-4 xl:grid-cols-[1.35fr_1fr]">
         <div className="space-y-4">
-          <Tarjeta>
+          <Tarjeta className="!ring-0 shadow-elevada">
             <CabezaTarjeta
               titulo="Información del formulario"
               apoyo="Datos declarados por la persona. El NSS se descifra únicamente para perfiles autorizados y cada consulta queda auditada."
@@ -178,7 +178,7 @@ export default async function Expediente({ params }: { params: Promise<{ id: str
             </dl>
           </Tarjeta>
 
-          <Tarjeta>
+          <Tarjeta className="!ring-0 shadow-elevada">
             <CabezaTarjeta
               titulo="Ficha del expediente"
               apoyo="Los datos con los que se decide si el trámite procede."
@@ -189,7 +189,7 @@ export default async function Expediente({ params }: { params: Promise<{ id: str
           </Tarjeta>
 
           {/* ---------- checklist documental ---------- */}
-          <Tarjeta>
+          <Tarjeta className="!ring-0 shadow-elevada">
             <CabezaTarjeta
               titulo="Expediente documental"
               apoyo={
@@ -277,13 +277,13 @@ export default async function Expediente({ params }: { params: Promise<{ id: str
 
         {/* ---------- bitácora ---------- */}
         <div className="space-y-4">
-          <Tarjeta>
+          <Tarjeta className="!ring-0 shadow-elevada">
             <CabezaTarjeta titulo="Registrar contacto"
                            apoyo="Cada llamada y cada WhatsApp, aquí. Es la memoria del expediente." />
             <div className="mt-4"><FormularioActividad leadId={l.id} /></div>
           </Tarjeta>
 
-          <Tarjeta>
+          <Tarjeta className="!ring-0 shadow-elevada">
             <CabezaTarjeta titulo="Bitácora" apoyo={`${bitacora.length} movimientos registrados.`} />
             {bitacora.length === 0 ? (
               <Vacio icono="nota" titulo="Todavía sin movimientos"
@@ -322,7 +322,7 @@ export default async function Expediente({ params }: { params: Promise<{ id: str
             )}
           </Tarjeta>
 
-          <Tarjeta>
+          <Tarjeta className="!ring-0 shadow-elevada">
             <CabezaTarjeta titulo="Atribución" apoyo="De dónde vino esta persona." />
             <dl className="mt-3 space-y-2 text-[0.8rem]">
               <Renglon rotulo="Origen" valor={l.origen ?? "—"} />

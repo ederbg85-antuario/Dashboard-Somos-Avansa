@@ -22,11 +22,17 @@ export default async function AltaManual() {
       </div>
 
       <div className="mx-auto max-w-3xl">
-        <Tarjeta>
-          <CabezaTarjeta
-            titulo="Nuevo expediente"
-            apoyo="Para el contacto que no llegó por el formulario del sitio: una llamada, un WhatsApp directo o una recomendación. Entra al pipeline en «Contactado» y asignado a ti."
-          />
+        <Tarjeta className="animate-entrar !ring-0 shadow-flotante">
+          <div className="mb-5 flex items-start gap-3 rounded-2xl bg-gradient-to-r from-coral-50 to-teal-50 p-4">
+            <span className="grid size-10 shrink-0 place-items-center rounded-2xl bg-coral text-white shadow-elevada">
+              <Icono nombre="mas" className="size-5" />
+            </span>
+            <CabezaTarjeta
+              className="min-w-0 flex-1"
+              titulo="Nuevo expediente"
+              apoyo="Registra un contacto recibido por llamada, WhatsApp o recomendación. Se agregará en la etapa «Contactado» y quedará asignado a tu perfil."
+            />
+          </div>
           <div className="mt-5">
             <FormularioAlta />
           </div>

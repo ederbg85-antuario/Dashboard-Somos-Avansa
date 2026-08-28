@@ -61,7 +61,7 @@ export default async function ListaExpedientes({
         </div>
       </Encabezado>
 
-      <Tarjeta>
+      <Tarjeta className="animate-entrar !ring-0 shadow-elevada">
         {filas.length === 0 ? (
           <Vacio icono="buscar" titulo="Nada coincide con este filtro"
                  texto="Prueba con otra etapa o quita el filtro."

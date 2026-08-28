@@ -1,13 +1,12 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { Encabezado } from "@/components/panel/Encabezado";
-import { BotonEnlace } from "@/components/ui/Boton";
 import { CabezaTarjeta, Tarjeta } from "@/components/ui/Tarjeta";
 import { Insignia } from "@/components/ui/Insignia";
 import { Icono } from "@/components/ui/Icono";
 import { clienteServidor } from "@/lib/supabase/servidor";
 import { exigirRol } from "@/lib/supabase/sesion";
 import type { ContenidoMedio, ContenidoSocial } from "@/lib/supabase/tipos";
+import { numero } from "@/lib/formato";
+import { CabeceraMarketing, HeroPlataforma } from "../_componentes/Presentacion";
 import { FormularioContenido } from "./FormularioContenido";
 
 export const metadata: Metadata = { title: "Calendario de contenido" };
@@ -42,16 +41,29 @@ export default async function CalendarioContenido() {
     mediosPorContenido.set(medio.contenido_id, lista);
   }
   const lista = (contenidos ?? []) as ContenidoSocial[];
+  const pendientes = lista.filter((contenido) => ["borrador", "programado"].includes(contenido.estado)).length;
+  const publicados = lista.filter((contenido) => contenido.estado === "publicado").length;
 
   return (
     <>
-      <Encabezado
+      <CabeceraMarketing
         titulo="Calendario de contenido"
         apoyo="Prepara piezas, conserva los archivos privados y deja listo el orden de publicación para Facebook e Instagram."
-        acciones={<BotonEnlace href="/marketing" tono="claro"><Icono nombre="volver" className="size-4" />Volver a marketing</BotonEnlace>}
       />
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(20rem,.8fr)]">
+      <HeroPlataforma
+        plataforma="calendario"
+        ceja="Centro editorial · Facebook + Instagram"
+        titulo={<>Una sola cola para pasar de la <span className="text-coral-100">idea a la publicación.</span></>}
+        texto="Cada pieza conserva copy, formato, plataformas, archivos privados y fecha. Publicar en Meta se habilita únicamente cuando la app tenga los permisos oficiales."
+        cifras={[
+          { etiqueta: "Piezas guardadas", valor: numero(lista.length) },
+          { etiqueta: "Pendientes", valor: numero(pendientes) },
+          { etiqueta: "Publicadas", valor: numero(publicados) },
+        ]}
+      />
+
+      <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(20rem,.8fr)]">
         <Tarjeta>
           <CabezaTarjeta titulo="Próximas piezas" apoyo="La cola editorial de Avansa, con hora de México cuando aplique." />
           {lista.length === 0 ? (
@@ -67,7 +79,7 @@ export default async function CalendarioContenido() {
                 const primero = mediosDePieza[0];
                 const [etiqueta, color] = ESTADOS[contenido.estado];
                 return (
-                  <article key={contenido.id} className="overflow-hidden rounded-2xl bg-mist ring-1 ring-hair">
+                  <article key={contenido.id} className="group overflow-hidden rounded-2xl bg-mist ring-1 ring-hair transition duration-200 hover:-translate-y-1 hover:bg-white hover:shadow-elevada">
                     <div className="relative grid aspect-[16/8] place-items-center overflow-hidden bg-deep">
                       {primero?.url && primero.tipo_archivo === "imagen" ? (
                         // El archivo viene del bucket privado mediante una URL de una hora.
@@ -103,9 +115,6 @@ export default async function CalendarioContenido() {
         </Tarjeta>
       </div>
 
-      <p className="mt-4 text-center text-[0.72rem] text-slate">
-        ¿Buscas las métricas de campañas? <Link href="/marketing" className="font-semibold text-coral hover:underline">Regresa a Marketing</Link>.
-      </p>
     </>
   );
 }

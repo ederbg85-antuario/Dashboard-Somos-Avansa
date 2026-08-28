@@ -7,6 +7,7 @@ import { Encabezados, Fila, Tabla, Td, Th } from "@/components/ui/Tabla";
 import { NATURALEZAS } from "@/lib/constantes";
 import { dinero, inicioDeMes, mes as nombreMes, numero } from "@/lib/formato";
 import { categorias as cargarCategorias } from "@/lib/datos";
+import { bandejaId, hayChatwoot } from "@/lib/chatwoot/cliente";
 import { metaConfigurado } from "@/lib/meta/insights";
 import { clienteServidor } from "@/lib/supabase/servidor";
 import { exigirRol } from "@/lib/supabase/sesion";
@@ -123,6 +124,15 @@ export default async function Ajustes() {
                   metaConfigurado()
                     ? "Configurada. El módulo de Marketing puede sincronizar impresiones, clics, gasto y leads por campaña y día."
                     : "Sin configurar. Define META_ACCESS_TOKEN y META_AD_ACCOUNT_ID en el entorno; mientras tanto la captura manual funciona igual."
+                  }
+              />
+              <Conexion
+                activa={hayChatwoot && Boolean(bandejaId)}
+                titulo="WhatsApp oficial · Chatwoot"
+                detalle={
+                  hayChatwoot && bandejaId
+                    ? `Conectado a la bandeja ${bandejaId}. Los mensajes entrantes pasan por el reparto uno a uno y sólo llegan al asesor asignado.`
+                    : "Pendiente de registrar el número oficial y guardar la bandeja, el token técnico y el webhook de Chatwoot en producción."
                 }
               />
             </ul>

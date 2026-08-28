@@ -19,6 +19,16 @@ export type Entrada = {
   /** Marca la entrada como activa también en sus subrutas. */
   prefijo?: boolean;
   descripcion: string;
+  /** Destinos relacionados que se despliegan debajo de la entrada principal. */
+  subentradas?: Subentrada[];
+};
+
+export type Subentrada = {
+  href: string;
+  etiqueta: string;
+  descripcion: string;
+  /** Activa también las rutas más profundas de este destino. */
+  prefijo?: boolean;
 };
 
 export type Grupo = { titulo: string; entradas: Entrada[] };
@@ -31,17 +41,32 @@ export const MENU: Grupo[] = [
         descripcion: "El estado del negocio hoy" },
       { href: "/solicitudes", etiqueta: "Solicitudes", icono: "bandeja", modulo: "solicitudes", prefijo: true,
         descripcion: "Lo que llega del sitio web" },
-      { href: "/conversaciones", etiqueta: "Conversaciones", icono: "conversacion", modulo: "conversaciones", prefijo: true,
+      { href: "/conversaciones", etiqueta: "Bandeja de entrada", icono: "conversacion", modulo: "conversaciones", prefijo: true,
         descripcion: "WhatsApp del equipo" },
       { href: "/crm", etiqueta: "CRM", icono: "embudo", modulo: "crm", prefijo: true,
         descripcion: "Pipeline y expedientes" },
+      { href: "/rendimiento", etiqueta: "Rendimiento", icono: "reporte", modulo: "rendimiento", prefijo: true,
+        descripcion: "Análisis del trabajo de los asesores" },
     ],
   },
   {
     titulo: "Crecimiento",
     entradas: [
-      { href: "/marketing", etiqueta: "Marketing", icono: "megafono", modulo: "marketing", prefijo: true,
-        descripcion: "Campañas de Meta Ads" },
+      {
+        href: "/marketing",
+        etiqueta: "Marketing",
+        icono: "megafono",
+        modulo: "marketing",
+        prefijo: true,
+        descripcion: "Rendimiento y contenidos por canal",
+        subentradas: [
+          { href: "/marketing", etiqueta: "Resumen", descripcion: "Todos los canales en una vista" },
+          { href: "/marketing/meta", etiqueta: "Meta Ads", descripcion: "Campañas y rendimiento publicitario", prefijo: true },
+          { href: "/marketing/search-console", etiqueta: "Search Console", descripcion: "Visibilidad y búsquedas orgánicas", prefijo: true },
+          { href: "/marketing/instagram", etiqueta: "Instagram", descripcion: "Contenido y comunidad", prefijo: true },
+          { href: "/marketing/contenido", etiqueta: "Calendario", descripcion: "Planeación de publicaciones", prefijo: true },
+        ],
+      },
     ],
   },
   {

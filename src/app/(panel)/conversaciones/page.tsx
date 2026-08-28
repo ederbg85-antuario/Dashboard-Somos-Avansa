@@ -6,7 +6,7 @@ import { exigirRol } from "@/lib/supabase/sesion";
 import { equipo as cargarEquipo } from "@/lib/datos";
 import { Bandeja, type Fila, type Mensaje } from "./Bandeja";
 
-export const metadata: Metadata = { title: "Conversaciones" };
+export const metadata: Metadata = { title: "Bandeja de entrada" };
 export const dynamic = "force-dynamic";
 
 /**
@@ -80,17 +80,17 @@ export default async function Conversaciones() {
     return (
       <>
         <Encabezado
-          titulo="Conversaciones"
-          apoyo="La bandeja de WhatsApp del equipo, lista para atender desde avansa."
+          titulo="Bandeja de entrada"
+          apoyo="Mensajes de WhatsApp asignados al equipo, reunidos en un solo espacio de atención."
         />
-        <div className="mb-3 flex items-start gap-3 rounded-2xl border border-[#b7e2d5] bg-[#e9f8f2] px-4 py-3 text-[#075e54] shadow-tarjeta">
-          <span className="grid size-8 shrink-0 place-items-center rounded-full bg-[#25d366] text-white">
+        <div className="mb-4 flex animate-entrar items-start gap-3 overflow-hidden rounded-2xl bg-gradient-to-r from-deep to-deep-700 px-4 py-3.5 text-white shadow-elevada">
+          <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-white/15 text-[#73e59d] shadow-inner">
             <Icono nombre="whatsapp" className="size-[18px]" />
           </span>
           <div>
-            <p className="text-[0.82rem] font-bold">Vista demo de la bandeja</p>
-            <p className="mt-0.5 text-[0.74rem] leading-relaxed text-[#43766d]">
-              El contenedor ya está listo. Al registrar el número oficial, esta conversación de muestra se sustituirá automáticamente por los mensajes reales.
+            <p className="text-[0.82rem] font-bold">Vista previa del canal</p>
+            <p className="mt-0.5 max-w-3xl text-[0.74rem] leading-relaxed text-white/70">
+              Este chat de muestra se reemplazará por la bandeja real en cuanto quede vinculado el número oficial de WhatsApp.
             </p>
           </div>
         </div>
@@ -109,11 +109,11 @@ export default async function Conversaciones() {
   return (
     <>
       <Encabezado
-        titulo="Conversaciones"
+        titulo="Bandeja de entrada"
         apoyo={
           sesion.perfil.rol === "admin"
-            ? "Supervisión completa de WhatsApp. Puedes reasignar; las respuestas corresponden a los asesores."
-            : "Sólo las conversaciones que el reparto automático asignó a tu perfil."
+            ? "Supervisa la atención y reasigna contactos. Las respuestas permanecen a cargo de los asesores."
+            : "Aquí aparecen únicamente los mensajes que el reparto automático asignó a tu perfil."
         }
       />
       <Bandeja

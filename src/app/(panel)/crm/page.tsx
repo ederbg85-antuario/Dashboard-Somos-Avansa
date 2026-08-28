@@ -1,6 +1,5 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { Encabezado } from "@/components/panel/Encabezado";
 import { Tarjeta } from "@/components/ui/Tarjeta";
 import { Punto } from "@/components/ui/Insignia";
 import { Icono } from "@/components/ui/Icono";
@@ -54,40 +53,78 @@ export default async function TableroCRM({
 
   return (
     <>
-      <Encabezado
-        titulo="Pipeline"
-        apoyo="Cada columna es una etapa del proceso de avansa. Mueve un expediente con el selector de su tarjeta; el cambio queda en la bitácora."
-        acciones={
-          <BotonEnlace href="/crm/nuevo" tono="coral">
-            <Icono nombre="mas" className="size-4" />
-            Alta manual
-          </BotonEnlace>
-        }
-      >
-        <div className="mt-4 flex flex-wrap items-center gap-2">
-          <Filtro href="/crm" activo={!asesor && !clase && !q}>Todo el pipeline</Filtro>
-          <Filtro href="/crm?asesor=mios" activo={asesor === "mios"}>Míos</Filtro>
-          <Filtro href="/crm?asesor=sin-dueno" activo={asesor === "sin-dueno"}>Sin dueño</Filtro>
-          <span className="mx-1 h-5 w-px bg-hair" aria-hidden="true" />
-          {(["A", "B", "C", "D"] as const).map((g) => (
-            <Filtro key={g} href={`/crm?clase=${g}`} activo={clase === g} color={CLASIFICACIONES[g].color}>
-              {g}
-            </Filtro>
-          ))}
+      <section className="relative mb-5 animate-entrar overflow-hidden rounded-[1.75rem] bg-gradient-to-br from-deep via-deep-700 to-[#195063] p-5 text-white shadow-flotante sm:p-6">
+        <span className="pointer-events-none absolute -right-16 -top-24 size-64 rounded-full bg-coral/20 blur-3xl" aria-hidden="true" />
+        <span className="pointer-events-none absolute -bottom-24 left-1/3 size-56 rounded-full bg-teal/20 blur-3xl" aria-hidden="true" />
+
+        <div className="relative flex flex-wrap items-start justify-between gap-4">
+          <div className="max-w-2xl">
+            <p className="flex items-center gap-2 text-[0.66rem] font-bold uppercase tracking-[0.18em] text-coral-100">
+              <span className="grid size-7 place-items-center rounded-lg bg-white/10">
+                <Icono nombre="embudo" className="size-3.5" />
+              </span>
+              CRM avansa
+            </p>
+            <h1 className="mt-3 text-[1.6rem] font-semibold leading-tight tracking-[-0.035em] sm:text-[1.85rem]">
+              Pipeline comercial
+            </h1>
+            <p className="mt-1.5 max-w-xl text-[0.8rem] leading-relaxed text-white/65">
+              Consulta el avance del equipo y mueve cada expediente de etapa. Todos los cambios quedan registrados en su bitácora.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <BotonEnlace href="/crm/lista" tono="claro" className="!border-0 !bg-white/10 !text-white !ring-0 backdrop-blur hover:!bg-white/20">
+              <Icono nombre="reporte" className="size-4" />
+              Ver lista
+            </BotonEnlace>
+            <BotonEnlace href="/crm/nuevo" tono="coral" className="shadow-elevada">
+              <Icono nombre="mas" className="size-4" />
+              Alta manual
+            </BotonEnlace>
+          </div>
         </div>
 
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <Cifra rotulo="Expedientes abiertos" valor={numero(abiertos.length)} />
-          <Cifra rotulo="Valor del pipeline" valor={dineroCorto(valorAbierto)} />
-          <Cifra rotulo="Valor ponderado" valor={dineroCorto(valorPonderado)}
-                 ayuda="Valor × probabilidad de cada etapa" />
-          <Cifra rotulo="Cerrados / descartados"
-                 valor={`${numero(cerrados.length)} / ${numero(descartados.length)}`} />
+        <div className="relative mt-5 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <Filtro href="/crm" activo={!asesor && !clase && !q}>Todo</Filtro>
+            <Filtro href="/crm?asesor=mios" activo={asesor === "mios"}>Mis expedientes</Filtro>
+            <Filtro href="/crm?asesor=sin-dueno" activo={asesor === "sin-dueno"}>Sin responsable</Filtro>
+            <span className="mx-1 hidden h-5 w-px bg-white/15 sm:block" aria-hidden="true" />
+            {(["A", "B", "C", "D"] as const).map((g) => (
+              <Filtro key={g} href={`/crm?clase=${g}`} activo={clase === g} color={CLASIFICACIONES[g].color}>
+                {g}
+              </Filtro>
+            ))}
+          </div>
+
+          <form action="/crm" className="relative w-full sm:max-w-xs">
+            {asesor && <input type="hidden" name="asesor" value={asesor} />}
+            {clase && <input type="hidden" name="clase" value={clase} />}
+            <label htmlFor="buscar-pipeline" className="sr-only">Buscar expediente</label>
+            <Icono nombre="buscar" className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-white/45" />
+            <input
+              id="buscar-pipeline"
+              name="q"
+              defaultValue={q ?? ""}
+              placeholder="Nombre, teléfono o correo"
+              className="h-10 w-full rounded-xl bg-white/10 pl-9 pr-3 text-[0.78rem] text-white shadow-inner outline-none backdrop-blur placeholder:text-white/40 focus:bg-white/15 focus:ring-2 focus:ring-white/25"
+            />
+          </form>
         </div>
-      </Encabezado>
+
+        <div className="relative mt-4 grid gap-2.5 sm:grid-cols-2 xl:grid-cols-4">
+          <Cifra rotulo="Expedientes activos" valor={numero(abiertos.length)} icono="usuarios" acento="coral" />
+          <Cifra rotulo="Valor en proceso" valor={dineroCorto(valorAbierto)} icono="monedas" acento="teal" />
+          <Cifra rotulo="Proyección ponderada" valor={dineroCorto(valorPonderado)}
+                 ayuda="Valor × probabilidad de cada etapa" icono="reporte" acento="sand" />
+          <Cifra rotulo="Ganados / descartados"
+                 valor={`${numero(cerrados.length)} / ${numero(descartados.length)}`} icono="cheque" acento="coral" />
+        </div>
+      </section>
 
       {abiertos.length === 0 ? (
-        <Tarjeta>
+        <Tarjeta className="!ring-0 shadow-elevada">
           <Vacio
             icono="embudo"
             titulo="No hay expedientes con este filtro"
@@ -98,32 +135,34 @@ export default async function TableroCRM({
       ) : (
         /* Las columnas viven en su propio scroll horizontal: la página nunca
            se desplaza de lado, sólo el tablero. */
-        <div className="-mx-4 overflow-x-auto px-4 pb-3 sm:-mx-7 sm:px-7">
-          <div className="flex min-w-max gap-3">
+        <div className="-mx-4 overflow-x-auto px-4 pb-4 sm:-mx-7 sm:px-7">
+          <div className="flex min-w-max items-stretch gap-3.5">
             {ETAPAS_TABLERO.map((etapa) => {
               const columna = abiertos.filter((l) => l.estado === etapa.clave);
               const valor = columna.reduce((s, l) => s + (Number(l.valor_estimado) || 0), 0);
 
               return (
-                <section key={etapa.clave} className="flex w-[17.5rem] shrink-0 flex-col">
-                  <header className="mb-2.5 flex items-baseline justify-between gap-2 px-1">
-                    <span className="flex items-center gap-2">
-                      <Punto color={etapa.color} />
-                      <span className="text-[0.82rem] font-semibold text-ink">{etapa.nombre}</span>
-                      <span className="cifra rounded-md bg-white px-1.5 py-0.5 text-[0.68rem] font-semibold text-slate ring-1 ring-hair">
-                        {numero(columna.length)}
+                <section key={etapa.clave} className="flex w-[18rem] shrink-0 animate-entrar flex-col rounded-[1.35rem] bg-white/70 p-2.5 shadow-tarjeta backdrop-blur-sm">
+                  <header className="relative mb-2 overflow-hidden rounded-2xl bg-white px-3 py-3 shadow-tarjeta">
+                    <span className="absolute inset-y-0 left-0 w-1" style={{ background: etapa.color }} aria-hidden="true" />
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="flex min-w-0 items-center gap-2">
+                        <Punto color={etapa.color} />
+                        <span className="truncate text-[0.82rem] font-semibold text-ink">{etapa.nombre}</span>
+                        <span className="cifra rounded-lg bg-mist px-1.5 py-0.5 text-[0.66rem] font-semibold text-slate">
+                          {numero(columna.length)}
+                        </span>
                       </span>
-                    </span>
-                    <span className="cifra text-[0.7rem] text-slate">{dineroCorto(valor)}</span>
+                      <span className="cifra shrink-0 text-[0.7rem] font-semibold text-deep">{dineroCorto(valor)}</span>
+                    </div>
+                    <p className="mt-1.5 line-clamp-2 text-[0.66rem] leading-snug text-slate-400">{etapa.descripcion}</p>
                   </header>
 
-                  <p className="mb-2 px-1 text-[0.68rem] leading-snug text-slate-400">{etapa.descripcion}</p>
-
-                  <div className="flex flex-1 flex-col gap-2 rounded-2xl bg-white/60 p-2 ring-1 ring-hair/70">
+                  <div className="flex flex-1 flex-col gap-2 rounded-2xl bg-mist/70 p-1.5 shadow-inner">
                     {columna.length === 0 ? (
-                      <p className="px-2 py-6 text-center text-[0.74rem] text-slate-400">
-                        Nada en esta etapa.
-                      </p>
+                      <div className="grid min-h-24 place-items-center rounded-xl border border-dashed border-hair-fuerte/70 px-3 py-5 text-center">
+                        <p className="text-[0.7rem] text-slate-400">Sin expedientes en esta etapa</p>
+                      </div>
                     ) : (
                       columna.map((l) => (
                         <TarjetaLead key={l.id} lead={l} asesor={l.asesor_id ? equipo.get(l.asesor_id) : undefined} />
@@ -150,17 +189,17 @@ function TarjetaLead({ lead: l, asesor }: { lead: LeadLigero; asesor?: Perfil })
   const vencida = l.fecha_proxima_accion !== null && l.fecha_proxima_accion < iso();
 
   return (
-    <article className="rounded-xl bg-white p-3 ring-1 ring-hair shadow-tarjeta transition hover:shadow-elevada">
+    <article className="group rounded-2xl bg-white p-3.5 shadow-tarjeta transition-all duration-200 motion-safe:hover:-translate-y-0.5 hover:shadow-elevada">
       <div className="flex items-start justify-between gap-2">
         <Link href={`/crm/${l.id}`} className="min-w-0 flex-1">
-          <span className="block truncate text-[0.83rem] font-semibold leading-tight text-ink hover:text-coral">
+          <span className="block truncate text-[0.84rem] font-semibold leading-tight text-ink transition group-hover:text-coral">
             {l.nombre}
           </span>
           <span className="cifra mt-0.5 block text-[0.7rem] text-slate">{l.telefono}</span>
         </Link>
         {l.clasificacion && (
           <span
-            className="grid size-5 shrink-0 place-items-center rounded-md text-[0.65rem] font-bold text-white"
+            className="grid size-6 shrink-0 place-items-center rounded-lg text-[0.65rem] font-bold text-white shadow-tarjeta"
             style={{ background: CLASIFICACIONES[l.clasificacion].color }}
             title={CLASIFICACIONES[l.clasificacion].nombre}
           >
@@ -179,7 +218,7 @@ function TarjetaLead({ lead: l, asesor }: { lead: LeadLigero; asesor?: Perfil })
       </div>
 
       {l.proxima_accion && (
-        <p className={`mt-2 flex items-start gap-1.5 rounded-lg px-2 py-1.5 text-[0.7rem] leading-snug ${
+        <p className={`mt-2.5 flex items-start gap-1.5 rounded-xl px-2.5 py-2 text-[0.7rem] leading-snug ${
           vencida ? "bg-coral-50 text-coral-700" : "bg-mist text-slate"
         }`}>
           <Icono nombre={vencida ? "alerta" : "reloj"} className="mt-px size-3 shrink-0" />
@@ -195,13 +234,13 @@ function TarjetaLead({ lead: l, asesor }: { lead: LeadLigero; asesor?: Perfil })
       <div className="mt-2.5 flex items-center gap-1.5">
         {asesor ? (
           <span
-            className="grid size-6 shrink-0 place-items-center rounded-full bg-deep text-[0.6rem] font-semibold text-white"
+            className="grid size-7 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-deep to-deep-700 text-[0.6rem] font-semibold text-white shadow-tarjeta"
             title={asesor.nombre}
           >
             {iniciales(asesor.nombre)}
           </span>
         ) : (
-          <span className="grid size-6 shrink-0 place-items-center rounded-full bg-mist text-slate-400" title="Sin dueño">
+          <span className="grid size-7 shrink-0 place-items-center rounded-xl bg-mist text-slate-400 shadow-inner" title="Sin dueño">
             <Icono nombre="usuarios" className="size-3" />
           </span>
         )}
@@ -218,8 +257,8 @@ function Terminales({
   const q = parametros ? `?${parametros}` : "";
 
   return (
-    <div className="mt-4 grid gap-3 lg:grid-cols-2">
-      <Tarjeta>
+    <div className="mt-5 grid gap-4 lg:grid-cols-2">
+      <Tarjeta className="shadow-elevada">
         <div className="flex items-baseline justify-between">
           <h2 className="flex items-center gap-2 text-[0.9rem] font-semibold text-ink">
             <Punto color={ETAPA.cerrado.color} />
@@ -247,7 +286,7 @@ function Terminales({
         )}
       </Tarjeta>
 
-      <Tarjeta>
+      <Tarjeta className="shadow-elevada">
         <div className="flex items-baseline justify-between">
           <h2 className="flex items-center gap-2 text-[0.9rem] font-semibold text-ink">
             <Punto color={ETAPA.descartado.color} />
@@ -278,21 +317,48 @@ function Filtro({
   return (
     <Link
       href={href}
-      className={`inline-flex h-8 items-center gap-1.5 rounded-xl px-3 text-[0.78rem] font-semibold transition ${
-        activo ? "bg-deep text-white" : "bg-white text-slate ring-1 ring-hair hover:text-ink hover:ring-hair-fuerte"
+      className={`inline-flex h-8 items-center gap-1.5 rounded-xl px-3 text-[0.74rem] font-semibold transition-all duration-200 ${
+        activo
+          ? "bg-white text-deep shadow-elevada"
+          : "bg-white/[0.08] text-white/65 hover:bg-white/15 hover:text-white"
       }`}
     >
-      {color && <Punto color={activo ? "#fff" : color} />}
+      {color && <Punto color={color} />}
       {children}
     </Link>
   );
 }
 
-function Cifra({ rotulo, valor, ayuda }: { rotulo: string; valor: string; ayuda?: string }) {
+function Cifra({
+  rotulo,
+  valor,
+  ayuda,
+  icono,
+  acento,
+}: {
+  rotulo: string;
+  valor: string;
+  ayuda?: string;
+  icono: "usuarios" | "monedas" | "reporte" | "cheque";
+  acento: "coral" | "teal" | "sand";
+}) {
+  const acentos = {
+    coral: "bg-coral/20 text-coral-100",
+    teal: "bg-teal/20 text-teal-100",
+    sand: "bg-sand/20 text-sand-100",
+  };
+
   return (
-    <div className="rounded-xl bg-white px-3.5 py-3 ring-1 ring-hair shadow-tarjeta" title={ayuda}>
-      <p className="text-[0.68rem] font-semibold uppercase tracking-[0.06em] text-slate">{rotulo}</p>
-      <p className="cifra mt-1 text-[1.15rem] font-semibold leading-none text-ink">{valor}</p>
+    <div className="rounded-2xl bg-white/[0.09] px-3.5 py-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur" title={ayuda}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[0.63rem] font-semibold uppercase tracking-[0.08em] text-white/50">{rotulo}</p>
+          <p className="cifra mt-1.5 truncate text-[1.2rem] font-semibold leading-none tracking-tight text-white">{valor}</p>
+        </div>
+        <span className={`grid size-8 shrink-0 place-items-center rounded-xl ${acentos[acento]}`}>
+          <Icono nombre={icono} className="size-4" />
+        </span>
+      </div>
     </div>
   );
 }

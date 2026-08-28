@@ -245,6 +245,7 @@ export const ACCESO_MODULOS: Record<string, RolUsuario[]> = {
   solicitudes:["admin", "asesor"],
   conversaciones:["admin", "asesor"],
   crm:        ["admin", "asesor"],
+  rendimiento:["admin", "asesor"],
   marketing:  ["admin"],
   finanzas:   ["admin"],
   reportes:   ["admin"],

@@ -18,12 +18,21 @@ const TOKEN = process.env.CHATWOOT_TOKEN;
 const CUENTA = process.env.CHATWOOT_CUENTA_ID;
 const BANDEJA = process.env.CHATWOOT_BANDEJA_ID;
 
-/** `true` cuando la integración está configurada. La pantalla lo consulta
- *  para explicar qué falta en vez de reventar con un error opaco. */
-export const hayChatwoot = Boolean(URL_BASE && TOKEN && CUENTA);
-
 /** Bandeja a la que se limita el panel, si se fijó una. */
 export const bandejaId = BANDEJA ? Number(BANDEJA) : null;
+
+/** `true` sólo cuando la integración está cerrada sobre una bandeja concreta.
+ *  El ID no es opcional: sin él, Chatwoot devolvería conversaciones de otras
+ *  bandejas de la cuenta y el respaldo idempotente podría repartir pruebas
+ *  como leads reales. */
+export const hayChatwoot = Boolean(
+  URL_BASE
+  && TOKEN
+  && CUENTA
+  && bandejaId
+  && Number.isSafeInteger(bandejaId)
+  && bandejaId > 0,
+);
 
 export class ErrorChatwoot extends Error {
   constructor(readonly estado: number, mensaje: string) {

@@ -18,6 +18,10 @@ const decimal = (fd: FormData, campo: string) => Math.max(0, Number(fd.get(campo
 
 function refrescar() {
   revalidatePath("/marketing");
+  revalidatePath("/marketing/meta");
+  revalidatePath("/marketing/search-console");
+  revalidatePath("/marketing/instagram");
+  revalidatePath("/marketing/contenido");
   revalidatePath("/");
 }
 
