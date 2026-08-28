@@ -35,6 +35,9 @@ export type DocumentoEstatus = "pendiente" | "recibido" | "validado" | "rechazad
 
 export type CampanaEstado = "borrador" | "activa" | "pausada" | "finalizada";
 
+export type TipoContenidoSocial = "publicacion" | "historia" | "reel";
+export type EstadoContenidoSocial = "borrador" | "programado" | "publicando" | "publicado" | "error";
+
 export type TipoMovimiento = "ingreso" | "egreso";
 
 /** Renglón del estado de resultados donde cae cada peso. */
@@ -164,6 +167,44 @@ export type MetricaCampana = {
   conversaciones: number;
   es_demo: boolean;
   created_at: string;
+  updated_at: string;
+};
+
+/** Una pieza editorial, aún cuando vaya a salir en las dos redes. */
+export type ContenidoSocial = {
+  id: string;
+  titulo: string;
+  texto: string;
+  tipo: TipoContenidoSocial;
+  plataformas: ("facebook" | "instagram")[];
+  estado: EstadoContenidoSocial;
+  programado_para: string | null;
+  publicado_en: string | null;
+  creado_por: string;
+  actualizado_por: string | null;
+  resultado_meta: Record<string, unknown>;
+  error_publicacion: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ContenidoMedio = {
+  id: string;
+  contenido_id: string;
+  storage_path: string;
+  mime_type: string;
+  tipo_archivo: "imagen" | "video";
+  orden: number;
+  created_at: string;
+};
+
+/** Se lee exclusivamente con service_role; jamás se manda al navegador. */
+export type IntegracionGoogle = {
+  id: "principal";
+  refresh_token: string;
+  email: string | null;
+  conectado_por: string | null;
+  conectado_en: string;
   updated_at: string;
 };
 
@@ -303,6 +344,9 @@ export type Database = {
       documentos: Tabla<Documento>;
       campanas: Tabla<Campana>;
       metricas_campana: Tabla<MetricaCampana>;
+      contenidos_sociales: Tabla<ContenidoSocial>;
+      contenido_medios: Tabla<ContenidoMedio>;
+      integraciones_google: Tabla<IntegracionGoogle>;
       categorias_finanzas: Tabla<CategoriaFinanzas>;
       movimientos: Tabla<Movimiento>;
       metas: Tabla<Meta>;
@@ -356,6 +400,8 @@ export type Database = {
       actividad_tipo: ActividadTipo;
       documento_estatus: DocumentoEstatus;
       campana_estado: CampanaEstado;
+      tipo_contenido_social: TipoContenidoSocial;
+      estado_contenido_social: EstadoContenidoSocial;
       tipo_movimiento: TipoMovimiento;
       naturaleza_cuenta: NaturalezaCuenta;
       estatus_movimiento: EstatusMovimiento;

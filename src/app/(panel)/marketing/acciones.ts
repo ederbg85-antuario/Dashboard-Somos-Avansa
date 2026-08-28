@@ -5,7 +5,7 @@ import { clienteServidor } from "@/lib/supabase/servidor";
 import { exigirRol } from "@/lib/supabase/sesion";
 import { metaConfigurado, traerInsights } from "@/lib/meta/insights";
 import { haceDias, iso } from "@/lib/formato";
-import type { CampanaEstado } from "@/lib/supabase/tipos";
+import type { CampanaEstado, EstadoContenidoSocial, TipoContenidoSocial } from "@/lib/supabase/tipos";
 
 export type Resultado = { ok: true; aviso?: string } | { ok: false; error: string };
 
@@ -170,4 +170,94 @@ export async function sincronizarConMeta(dias = 30): Promise<Resultado> {
 
 export async function sincronizarForm(datos: FormData): Promise<void> {
   await sincronizarConMeta(Number(datos.get("dias")) || 30);
+}
+
+// ---------- calendario editorial -----------------------------------------
+
+export type ResultadoContenido =
+  | { ok: true; id: string; aviso: string }
+  | { ok: false; error: string };
+
+const PLATAFORMAS = ["facebook", "instagram"] as const;
+const TIPOS_CONTENIDO = ["publicacion", "historia", "reel"] as const;
+const ESTADOS_CONTENIDO = ["borrador", "programado"] as const;
+
+/** Crea la pieza antes de subir el archivo directamente al bucket privado. */
+export async function guardarContenido(datos: FormData): Promise<ResultadoContenido> {
+  const { usuarioId } = await exigirRol("admin");
+  const supabase = await clienteServidor();
+  const titulo = texto(datos, "titulo", 140);
+  if (!titulo) return { ok: false, error: "Ponle un título a la pieza." };
+
+  const plataformas = datos.getAll("plataformas")
+    .map(String)
+    .filter((plataforma): plataforma is (typeof PLATAFORMAS)[number] =>
+      (PLATAFORMAS as readonly string[]).includes(plataforma),
+    );
+  if (plataformas.length === 0) return { ok: false, error: "Elige Facebook, Instagram o ambos." };
+
+  const tipo = texto(datos, "tipo") as TipoContenidoSocial | null;
+  const estado = texto(datos, "estado") as EstadoContenidoSocial | null;
+  if (!tipo || !(TIPOS_CONTENIDO as readonly string[]).includes(tipo)) {
+    return { ok: false, error: "Elige el formato del contenido." };
+  }
+  if (!estado || !(ESTADOS_CONTENIDO as readonly string[]).includes(estado)) {
+    return { ok: false, error: "Elige si quedará como borrador o programado." };
+  }
+
+  const fechaLocal = texto(datos, "programado_para", 40);
+  const programado_para = fechaLocal ? new Date(fechaLocal).toISOString() : null;
+  if (estado === "programado" && !programado_para) {
+    return { ok: false, error: "Indica fecha y hora para programar la pieza." };
+  }
+
+  const { data, error } = await supabase.from("contenidos_sociales").insert({
+    titulo,
+    texto: String(datos.get("texto") ?? "").trim().slice(0, 5000),
+    tipo,
+    plataformas,
+    estado,
+    programado_para,
+    creado_por: usuarioId,
+    actualizado_por: usuarioId,
+  }).select("id").single();
+
+  if (error || !data) return { ok: false, error: error?.message ?? "No se pudo crear la pieza." };
+  refrescar();
+  return {
+    ok: true,
+    id: data.id,
+    aviso: estado === "programado" ? "Contenido programado en el calendario." : "Borrador guardado.",
+  };
+}
+
+type MedioNuevo = { path: string; mime: string; tipo: "imagen" | "video"; orden: number };
+
+/** Registra archivos que el navegador acaba de subir al bucket privado. */
+export async function registrarMediosContenido(contenidoId: string, medios: MedioNuevo[]): Promise<Resultado> {
+  await exigirRol("admin");
+  if (!/^[0-9a-f-]{36}$/i.test(contenidoId) || medios.length === 0 || medios.length > 10) {
+    return { ok: false, error: "Los archivos del contenido no son válidos." };
+  }
+
+  const seguros = medios.every((medio) =>
+    medio.path.startsWith(`${contenidoId}/`)
+    && ["image/jpeg", "image/png", "image/webp", "video/mp4", "video/quicktime"].includes(medio.mime)
+    && ["imagen", "video"].includes(medio.tipo),
+  );
+  if (!seguros) return { ok: false, error: "Un archivo no cumple el formato permitido." };
+
+  const supabase = await clienteServidor();
+  const { error } = await supabase.from("contenido_medios").insert(
+    medios.map((medio) => ({
+      contenido_id: contenidoId,
+      storage_path: medio.path,
+      mime_type: medio.mime,
+      tipo_archivo: medio.tipo,
+      orden: medio.orden,
+    })),
+  );
+  if (error) return { ok: false, error: error.message };
+  refrescar();
+  return { ok: true, aviso: "Archivo agregado al contenido." };
 }

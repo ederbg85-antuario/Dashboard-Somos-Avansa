@@ -5,6 +5,7 @@ import { Indicador } from "@/components/ui/Indicador";
 import { CabezaTarjeta, Tarjeta } from "@/components/ui/Tarjeta";
 import { Insignia } from "@/components/ui/Insignia";
 import { Icono } from "@/components/ui/Icono";
+import { BotonEnlace } from "@/components/ui/Boton";
 import { Vacio } from "@/components/ui/Vacio";
 import { Encabezados, Fila, Tabla, Td, Th } from "@/components/ui/Tabla";
 import { Linea, type PuntoSerie } from "@/components/graficas/Linea";
@@ -14,6 +15,7 @@ import { dinero, dineroCorto, fecha, numero, porcentaje } from "@/lib/formato";
 import { diasDelRango, resolverPeriodo, variacion } from "@/lib/periodo";
 import { campanas as cargarCampanas, leadsCreados, metricasEnRango, totalizarPauta } from "@/lib/datos";
 import { metaConfigurado } from "@/lib/meta/insights";
+import { resumenGoogle } from "@/lib/google/insights";
 import { exigirRol } from "@/lib/supabase/sesion";
 import { BotonSincronizar, CapturaMetrica, NuevaCampana } from "./Formularios";
 
@@ -30,11 +32,12 @@ export default async function Marketing({
   const rango = resolverPeriodo(periodo);
   const puedeEditar = perfil.rol === "admin";
 
-  const [metricas, previas, campanas, leads] = await Promise.all([
+  const [metricas, previas, campanas, leads, google] = await Promise.all([
     metricasEnRango(rango.desde, rango.hasta),
     metricasEnRango(rango.anterior.desde, rango.anterior.hasta),
     cargarCampanas(),
     leadsCreados(rango.desde, rango.hasta),
+    resumenGoogle(rango.desde, rango.hasta),
   ]);
 
   const total = totalizarPauta(metricas);
@@ -96,10 +99,13 @@ export default async function Marketing({
     <>
       <Encabezado
         titulo="Marketing"
-        apoyo="Lo que cuesta traer a cada persona. El gasto se captura por campaña y día; si conectas el token de Meta, se sincroniza solo."
+        apoyo="Campañas, tráfico web y búsqueda orgánica en un solo lugar. Los datos de Google se consultan sólo en los activos de avansa."
         acciones={
           <>
             <SelectorPeriodo actual={rango.clave} />
+            <BotonEnlace href="/marketing/contenido" tono="claro" tamano="md">
+              <Icono nombre="calendario" className="size-4" />Calendario
+            </BotonEnlace>
             {puedeEditar && <NuevaCampana />}
           </>
         }
@@ -127,6 +133,53 @@ export default async function Marketing({
           apoyo={`CPM ${total.cpm !== null ? dineroCorto(total.cpm) : "—"}`}
         />
       </div>
+
+      <Tarjeta className="mt-4">
+        <CabezaTarjeta
+          titulo="Tráfico web y búsqueda"
+          apoyo="GA4 refleja el periodo elegido; Search Console puede tardar unos días en consolidar. “Activos ahora” usa la ventana en tiempo real de Google."
+          accion={
+            google.configurado && !google.conectado
+              ? <BotonEnlace href="/api/integraciones/google/conectar" tono="coral" tamano="sm">Conectar Google</BotonEnlace>
+              : google.conectado
+                ? <BotonEnlace href={`/marketing?periodo=${rango.clave}`} tono="claro" tamano="sm"><Icono nombre="destello" className="size-3.5" />Actualizar</BotonEnlace>
+                : undefined
+          }
+        />
+        {!google.configurado ? (
+          <p className="mt-4 rounded-xl bg-sand-50 px-3.5 py-3 text-[0.78rem] leading-relaxed text-sand-700">
+            Faltan las credenciales de Google en el entorno de producción. Cuando estén, este bloque mostrará únicamente GA4 AVANSA y Search Console de somosavansa.com.
+          </p>
+        ) : !google.conectado ? (
+          <p className="mt-4 rounded-xl bg-mist px-3.5 py-3 text-[0.78rem] leading-relaxed text-slate">
+            Autoriza la cuenta de Google que ya tiene acceso a AVANSA. El permiso solicitado es sólo lectura para Analytics y Search Console.
+          </p>
+        ) : google.error ? (
+          <p role="alert" className="mt-4 rounded-xl bg-coral-50 px-3.5 py-3 text-[0.78rem] leading-relaxed text-coral-700">
+            La conexión existe, pero Google no devolvió el reporte: {google.error}
+          </p>
+        ) : (
+          <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+            <DatoGoogle rotulo="Usuarios" valor={numero(google.analitica?.usuarios ?? 0)} icono="usuarios" color="#0F2D3D" />
+            <DatoGoogle rotulo="Sesiones" valor={numero(google.analitica?.sesiones ?? 0)} icono="enlace" color="#2FB6A3" />
+            <DatoGoogle rotulo="Vistas" valor={numero(google.analitica?.vistas ?? 0)} icono="ojo" color="#6B7785" />
+            <DatoGoogle rotulo="Activos ahora" valor={google.analitica?.activosAhora === null ? "—" : numero(google.analitica?.activosAhora ?? 0)} icono="destello" color="#E63A58" />
+            <DatoGoogle rotulo="Clics orgánicos" valor={numero(google.busqueda?.clics ?? 0)} icono="buscar" color="#D9AE83" />
+          </div>
+        )}
+        {google.conectado && !google.error && google.busqueda && google.busqueda.consultas.length > 0 && (
+          <div className="mt-4 border-t border-hair pt-4">
+            <p className="mb-2 text-[0.72rem] font-semibold uppercase tracking-[0.08em] text-slate">Consultas orgánicas destacadas</p>
+            <div className="flex flex-wrap gap-2">
+              {google.busqueda.consultas.slice(0, 5).map((consulta) => (
+                <span key={consulta.texto} className="rounded-lg bg-mist px-2.5 py-1.5 text-[0.74rem] text-ink">
+                  {consulta.texto} <span className="cifra text-slate">· {numero(consulta.clics)} clics</span>
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+      </Tarjeta>
 
       <div className="mt-4 grid gap-4 xl:grid-cols-2">
         <Tarjeta>
@@ -263,5 +316,15 @@ export default async function Marketing({
         )}
       </div>
     </>
+  );
+}
+
+function DatoGoogle({ rotulo, valor, icono, color }: { rotulo: string; valor: string; icono: "usuarios" | "enlace" | "ojo" | "destello" | "buscar"; color: string }) {
+  return (
+    <div className="rounded-xl bg-mist p-3.5">
+      <Icono nombre={icono} className="size-4" />
+      <p className="mt-3 text-[0.72rem] font-semibold uppercase tracking-[0.07em] text-slate">{rotulo}</p>
+      <p className="cifra mt-1 text-[1.25rem] font-semibold" style={{ color }}>{valor}</p>
+    </div>
   );
 }
