@@ -13,8 +13,8 @@ const ETIQUETAS: Record<Plataforma, string> = {
 };
 
 /**
- * Identificadores vectoriales locales. No cargan SDKs, tipografías ni
- * imágenes de terceros; sólo ayudan a reconocer la fuente de cada dato.
+ * Marcas vectoriales locales. Mantenerlas aquí evita dependencias remotas y
+ * conserva los colores y proporciones reconocibles de cada plataforma.
  */
 export function MarcaPlataforma({
   plataforma,
@@ -23,42 +23,49 @@ export function MarcaPlataforma({
   plataforma: Plataforma;
   className?: string;
 }) {
-  const comun = {
-    className,
-    viewBox: "0 0 32 32",
-    role: "img" as const,
-    "aria-label": ETIQUETAS[plataforma],
-  };
-
   if (plataforma === "meta") {
     return (
-      <svg {...comun} fill="none">
-        <path d="M4 20.5c2.2-7.7 5.1-12 8-12 3.8 0 6.4 12 9.8 12 2.3 0 4.2-2.5 6.2-7.3" stroke="#1877F2" strokeWidth="3.1" strokeLinecap="round" />
-        <path d="M4 20.5c2.3 3.1 4.4 3.1 6.4 0 2.1-3.1 4.2-9.1 7.5-11.2 3.4-2.2 7.2.1 10.1 3.9" stroke="#0866FF" strokeWidth="3.1" strokeLinecap="round" />
+      <svg
+        className={className}
+        viewBox="0 0 24 24"
+        role="img"
+        aria-label={ETIQUETAS[plataforma]}
+        focusable="false"
+      >
+        <path
+          fill="#0467DF"
+          d="M6.915 4.03c-1.968 0-3.683 1.28-4.871 3.113C.704 9.208 0 11.883 0 14.449c0 .706.07 1.369.21 1.973a6.624 6.624 0 0 0 .265.86c.1.268.223.523.371.761.696 1.159 1.818 1.927 3.593 1.927 1.497 0 2.633-.671 3.965-2.444.76-1.012 1.144-1.626 2.663-4.32l.756-1.339.186-.325c.061.1.121.196.183.3l2.152 3.595c.724 1.21 1.665 2.556 2.47 3.314 1.046.987 1.992 1.22 3.06 1.22 1.075 0 1.876-.355 2.455-.843a3.743 3.743 0 0 0 .81-.973c.542-.939.861-2.127.861-3.745 0-2.72-.681-5.357-2.084-7.45-1.282-1.912-2.957-2.93-4.716-2.93-1.047 0-2.088.467-3.053 1.308-.652.57-1.257 1.29-1.82 2.05-.69-.875-1.335-1.547-1.958-2.056-1.182-.966-2.315-1.303-3.454-1.303Zm10.16 2.053c1.147 0 2.188.758 2.992 1.999 1.132 1.748 1.647 4.195 1.647 6.4 0 1.548-.368 2.9-1.839 2.9-.58 0-1.027-.23-1.664-1.004-.496-.601-1.343-1.878-2.832-4.358l-.617-1.028a44.908 44.908 0 0 0-1.255-1.98c.07-.109.141-.224.211-.327 1.12-1.667 2.118-2.602 3.358-2.602Zm-10.201.553c1.265 0 2.058.791 2.675 1.446.307.327.737.871 1.234 1.579l-1.02 1.566c-.757 1.163-1.882 3.017-2.837 4.338-1.191 1.649-1.81 1.817-2.486 1.817-.524 0-1.038-.237-1.383-.794-.263-.426-.464-1.13-.464-2.046 0-2.221.63-4.535 1.66-6.088.454-.687.964-1.226 1.533-1.533a2.264 2.264 0 0 1 1.088-.285Z"
+        />
       </svg>
     );
   }
 
   if (plataforma === "instagram") {
     return (
-      <svg {...comun} fill="none">
-        <defs>
-          <linearGradient id="ig-avansa" x1="3" y1="29" x2="29" y2="3" gradientUnits="userSpaceOnUse">
-            <stop stopColor="#F9CE34" />
-            <stop offset=".48" stopColor="#EE2A7B" />
-            <stop offset="1" stopColor="#6228D7" />
-          </linearGradient>
-        </defs>
-        <rect x="4" y="4" width="24" height="24" rx="7" stroke="url(#ig-avansa)" strokeWidth="3" />
-        <circle cx="16" cy="16" r="5.5" stroke="url(#ig-avansa)" strokeWidth="3" />
-        <circle cx="23.3" cy="8.8" r="1.5" fill="#A833B7" />
+      <svg
+        className={className}
+        viewBox="0 0 24 24"
+        role="img"
+        aria-label={ETIQUETAS[plataforma]}
+        focusable="false"
+      >
+        <path
+          fill="#E4405F"
+          d="M12 0C8.74 0 8.333.015 7.053.072 5.775.132 4.905.333 4.14.63c-.789.306-1.459.717-2.126 1.384S.935 3.35.63 4.14C.333 4.905.131 5.775.072 7.053.012 8.333 0 8.74 0 12s.015 3.667.072 4.947c.06 1.277.261 2.148.558 2.913.306.788.717 1.459 1.384 2.126.667.666 1.336 1.079 2.126 1.384.766.296 1.636.499 2.913.558C8.333 23.988 8.74 24 12 24s3.667-.015 4.947-.072c1.277-.06 2.148-.262 2.913-.558.788-.306 1.459-.718 2.126-1.384.666-.667 1.079-1.335 1.384-2.126.296-.765.499-1.636.558-2.913.06-1.28.072-1.687.072-4.947s-.015-3.667-.072-4.947c-.06-1.277-.262-2.149-.558-2.913-.306-.789-.718-1.459-1.384-2.126C21.319 1.347 20.651.935 19.86.63c-.765-.297-1.636-.499-2.913-.558C15.667.012 15.26 0 12 0Zm0 2.16c3.203 0 3.585.016 4.85.071 1.17.055 1.805.249 2.227.415.562.217.96.477 1.382.896.419.42.679.819.896 1.381.164.422.36 1.057.413 2.227.057 1.266.07 1.646.07 4.85s-.015 3.585-.074 4.85c-.061 1.17-.256 1.805-.421 2.227-.224.562-.479.96-.899 1.382-.419.419-.824.679-1.38.896-.42.164-1.065.36-2.235.413-1.274.057-1.649.07-4.859.07-3.211 0-3.586-.015-4.859-.074-1.171-.061-1.816-.256-2.236-.421-.569-.224-.96-.479-1.379-.899-.421-.419-.69-.824-.9-1.38-.165-.42-.359-1.065-.42-2.235-.045-1.26-.061-1.649-.061-4.844 0-3.196.016-3.586.061-4.861.061-1.17.255-1.814.42-2.234.21-.57.479-.96.9-1.381.419-.419.81-.689 1.379-.898.42-.166 1.051-.361 2.221-.421 1.275-.045 1.65-.06 4.859-.06L12 2.16Zm0 3.678A6.162 6.162 0 1 0 12 18.162 6.162 6.162 0 0 0 12 5.838ZM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8Zm7.846-10.405a1.44 1.44 0 1 1-2.88 0 1.44 1.44 0 0 1 2.88 0Z"
+        />
       </svg>
     );
   }
 
   if (plataforma === "search") {
     return (
-      <svg className={className} viewBox="0 0 48 48" role="img" aria-label={ETIQUETAS[plataforma]}>
+      <svg
+        className={className}
+        viewBox="0 0 48 48"
+        role="img"
+        aria-label={ETIQUETAS[plataforma]}
+        focusable="false"
+      >
         <path fill="#FFC107" d="M43.6 20H42V20H24v8h11.3A12 12 0 0 1 12.7 32l-6.6 5.1A20 20 0 0 0 44 24c0-1.3-.1-2.7-.4-4Z" />
         <path fill="#FF3D00" d="m6.1 10.9 6.6 4.8A12 12 0 0 1 31.6 12l5.8-5.8A20 20 0 0 0 6.1 10.9Z" />
         <path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.1L31.2 33a11.9 11.9 0 0 1-18.5-5l-6.5 5A20 20 0 0 0 24 44Z" />
@@ -69,17 +76,29 @@ export function MarcaPlataforma({
 
   if (plataforma === "analytics" || plataforma === "sitio") {
     return (
-      <svg {...comun} fill="none">
-        <rect x="18" y="4" width="8" height="24" rx="4" fill="#F9AB00" />
-        <rect x="8" y="13" width="7" height="15" rx="3.5" fill="#E37400" />
-        <circle cx="4.5" cy="24.5" r="3.5" fill="#E37400" />
+      <svg
+        className={className}
+        viewBox="0 0 24 24"
+        role="img"
+        aria-label={ETIQUETAS[plataforma]}
+        focusable="false"
+      >
+        <path fill="#F9AB00" d="M22.84 2.998v17.999a2.973 2.973 0 0 1-5.945-.122V3.12a2.973 2.973 0 0 1 5.945-.122Z" />
+        <path fill="#E37400" d="M4.133 18.055a2.973 2.973 0 1 0 0 5.945 2.973 2.973 0 0 0 0-5.945Zm7.872-9.01a2.973 2.973 0 0 0-2.942 3.126v7.984c0 2.167.954 3.483 2.351 3.764a2.974 2.974 0 0 0 3.569-2.927v-8.959a2.973 2.973 0 0 0-2.978-2.988Z" />
       </svg>
     );
   }
 
   if (plataforma === "calendario") {
     return (
-      <svg {...comun} fill="none">
+      <svg
+        className={className}
+        viewBox="0 0 32 32"
+        role="img"
+        aria-label={ETIQUETAS[plataforma]}
+        focusable="false"
+        fill="none"
+      >
         <rect x="4" y="6" width="24" height="22" rx="6" fill="#FFF0F3" stroke="#FF4D6D" strokeWidth="2" />
         <path d="M4 12h24M10 3.5V8M22 3.5V8" stroke="#FF4D6D" strokeWidth="2.2" strokeLinecap="round" />
         <path d="m11 20 3 3 7-7" stroke="#2FB6A3" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
@@ -87,5 +106,14 @@ export function MarcaPlataforma({
     );
   }
 
-  return <Image src="/marca/isotipo/avansa-isotipo.svg" width={32} height={32} className={className} alt={ETIQUETAS.avansa} />;
+  return (
+    <Image
+      src="/marca/isotipo/avansa-isotipo.svg"
+      width={32}
+      height={32}
+      className={className}
+      alt={ETIQUETAS.avansa}
+      draggable={false}
+    />
+  );
 }

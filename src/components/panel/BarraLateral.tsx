@@ -169,7 +169,7 @@ export function BarraLateral({
               className="barra-lateral__logo h-[26px] w-auto"
             />
             <Image
-              src="/marca/isotipo/avansa-isotipo-white.svg"
+              src="/marca/isotipo/avansa-isotipo.svg"
               alt=""
               width={30}
               height={30}
