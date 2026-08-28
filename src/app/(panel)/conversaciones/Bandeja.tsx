@@ -780,9 +780,9 @@ export function Bandeja({
                                 : "wa-saliente self-end rounded-tr-sm"
                             }`}
                           >
-                            {!m.entrante && m.autor && !m.mio && (
+                            {!m.entrante && (
                               <p className="mb-0.5 text-[0.68rem] font-bold text-[#008069]">
-                                {m.autor}
+                                {m.autor ? `Enviado por ${m.autor}` : "Enviado desde Chatwoot"}
                               </p>
                             )}
 
@@ -826,11 +826,7 @@ export function Bandeja({
                     <Icono nombre="whatsapp" className="size-4 text-[#00a884]" />
                     Vista de muestra
                   </div>
-                ) : rol === "admin" ? (
-                  <p className="wa-muted px-1 py-2 text-center text-[0.78rem]">
-                    Supervisión · responden los asesores
-                  </p>
-                ) : !conversacion.mia ? (
+                ) : rol !== "admin" && !conversacion.mia ? (
                   <p className="wa-muted px-1 py-2 text-center text-[0.78rem]">
                     Chat no asignado a tu perfil
                   </p>

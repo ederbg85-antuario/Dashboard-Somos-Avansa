@@ -74,12 +74,6 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
 export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const p = await permiso(ctx.params);
   if (p.error) return p.error;
-  if (p.sesion.perfil.rol !== "asesor") {
-    return NextResponse.json(
-      { error: "Los administradores tienen acceso de supervisión, no de respuesta." },
-      { status: 403 },
-    );
-  }
 
   let cuerpo: { texto?: unknown };
   try {

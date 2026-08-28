@@ -135,7 +135,7 @@ export default async function Conversaciones() {
         titulo="Bandeja de entrada"
         apoyo={
           sesion.perfil.rol === "admin"
-            ? "Supervisa atención, etapas y asignaciones."
+            ? "Supervisa, responde y organiza la atención del equipo."
             : "Sólo aparecen tus conversaciones asignadas."
         }
       />

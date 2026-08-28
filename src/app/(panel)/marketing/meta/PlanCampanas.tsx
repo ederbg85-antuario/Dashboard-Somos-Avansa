@@ -19,8 +19,8 @@ export function PlanCampanas({
               <Icono nombre="escudo" className="size-4" />
             </span>
             <div>
-              <h2 className="text-[0.95rem] font-semibold text-ink">Plan de campañas autorizado</h2>
-              <p className="mt-0.5 text-[0.76rem] text-slate">Preparado como borrador; no inicia gasto.</p>
+              <h2 className="text-[0.95rem] font-semibold text-ink">Campañas publicadas en Meta</h2>
+              <p className="mt-0.5 text-[0.76rem] text-slate">Meta confirmó 11 anuncios y ya los está procesando.</p>
             </div>
           </div>
         </div>
@@ -38,13 +38,16 @@ export function PlanCampanas({
                 <p className="mt-1 text-[0.72rem] text-slate">{plan.audiencia}</p>
               </div>
               <Insignia solida color="#556270">
-                {campanasEnMeta >= PLANES_CAMPANA.length ? "Borrador en Meta" : "Plan en Avansa"}
+                {campanasEnMeta >= PLANES_CAMPANA.length ? "Publicada en Meta" : "Plan en Avansa"}
               </Insignia>
             </div>
             <dl className="mt-4 grid grid-cols-3 gap-2">
               <Dato etiqueta="Diario" valor={dineroCorto(plan.presupuestoDiario)} />
               <Dato etiqueta="Creativos" valor={`${plan.creativos.length} seleccionados`} />
-              <Dato etiqueta="Fechas" valor="Pendientes" />
+              <Dato
+                etiqueta="Fechas"
+                valor={plan.clave === "trafico-sitio" ? "28 ago – 4 sep" : "Desde 28 ago"}
+              />
             </dl>
             <details className="mt-3 rounded-xl bg-white px-3 py-2.5 text-[0.72rem] text-slate shadow-[0_8px_20px_-20px_rgb(15_45_61/.5)]">
               <summary className="cursor-pointer font-semibold text-ink">Material seleccionado</summary>
@@ -66,11 +69,11 @@ export function PlanCampanas({
       <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
         <Validacion texto="Cuenta, MXN y página" estado="Verificado" listo />
         <Validacion texto="Píxel y dataset" estado="Verificado" listo />
-        <Validacion texto="Pago y teléfono" estado="Pendiente" />
-        <Validacion texto="Inicio y término" estado="Pendiente" />
+        <Validacion texto="Pago y teléfono" estado="Verificado" listo />
+        <Validacion texto="Publicación en Meta" estado="11 de 11" listo />
       </div>
       <p className="mt-3 text-[0.72rem] leading-relaxed text-slate">
-        Las dos campañas ya existen como borradores externos y no generan gasto. Tráfico tiene su prueba de cinco creativos configurada; en Clientes potenciales todavía falta completar los anuncios. Para publicar siguen pendientes el método de pago, la verificación telefónica y las fechas.
+        Las dos campañas están publicadas y activadas con un límite de $200 MXN diarios cada una. Meta confirmó los 11 anuncios: cinco de Clientes potenciales y la prueba de Tráfico con sus cinco versiones y anuncio base. Actualmente están procesándose para revisión y entrega.
       </p>
     </section>
   );
