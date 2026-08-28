@@ -17,7 +17,7 @@ import type { RolUsuario } from "@/lib/supabase/tipos";
  * de tres y mantiene la credencial del lado del servidor.
  */
 
-type Fila = {
+export type Fila = {
   id: number;
   nombre: string;
   telefono: string | null;
@@ -31,7 +31,7 @@ type Fila = {
   libre: boolean;
 };
 
-type Mensaje = {
+export type Mensaje = {
   id: number;
   texto: string;
   mio: boolean;
@@ -45,6 +45,7 @@ type Companero = { id: string; nombre: string; rol: RolUsuario };
 
 const CADA_LISTA = 8000;
 const CADA_HILO = 6000;
+const SIN_MENSAJES: Mensaje[] = [];
 
 const relojFmt = new Intl.DateTimeFormat("es-MX", {
   hour: "2-digit", minute: "2-digit", timeZone: ZONA,
@@ -74,17 +75,19 @@ function iniciales(nombre: string): string {
 }
 
 export function Bandeja({
-  inicial, ocultas: ocultasIniciales, rol, equipo,
+  inicial, ocultas: ocultasIniciales, rol, equipo, modoDemo = false, mensajesDemo = SIN_MENSAJES,
 }: {
   inicial: Fila[];
   ocultas: number;
   rol: RolUsuario;
   equipo: Companero[];
+  modoDemo?: boolean;
+  mensajesDemo?: Mensaje[];
 }) {
   const [filas, setFilas] = useState<Fila[]>(inicial);
   const [ocultas, setOcultas] = useState(ocultasIniciales);
-  const [abierta, setAbierta] = useState<number | null>(null);
-  const [mensajes, setMensajes] = useState<Mensaje[]>([]);
+  const [abierta, setAbierta] = useState<number | null>(modoDemo ? inicial[0]?.id ?? null : null);
+  const [mensajes, setMensajes] = useState<Mensaje[]>(modoDemo ? mensajesDemo : SIN_MENSAJES);
   const [cargandoHilo, setCargandoHilo] = useState(false);
   const [texto, setTexto] = useState("");
   const [enviando, setEnviando] = useState(false);
@@ -101,6 +104,7 @@ export function Bandeja({
   // ---------- datos ----------
 
   const traerLista = useCallback(async () => {
+    if (modoDemo) return;
     try {
       const r = await fetch("/api/conversaciones", { cache: "no-store" });
       // Una sesión vencida tiene que decirse. Si no, el sondeo seguiría
@@ -117,9 +121,14 @@ export function Bandeja({
     } catch {
       // Un sondeo que falla no merece molestar a nadie: el siguiente arregla.
     }
-  }, []);
+  }, [modoDemo]);
 
   const traerHilo = useCallback(async (id: number) => {
+    if (modoDemo) {
+      setMensajes(mensajesDemo);
+      setCargandoHilo(false);
+      return;
+    }
     try {
       const r = await fetch(`/api/conversaciones/${id}/mensajes`, { cache: "no-store" });
       if (r.status === 401) {
@@ -143,26 +152,32 @@ export function Bandeja({
     } finally {
       setCargandoHilo(false);
     }
-  }, []);
+  }, [mensajesDemo, modoDemo]);
 
   useEffect(() => {
+    if (modoDemo) return;
     const t = setInterval(traerLista, CADA_LISTA);
     return () => clearInterval(t);
-  }, [traerLista]);
+  }, [modoDemo, traerLista]);
 
   // El efecto sólo mantiene el hilo al día. La primera carga la dispara el
   // clic, unas líneas más abajo: abrir una conversación es una acción de la
   // persona, no algo que haya que deducir después mirando el estado.
   useEffect(() => {
-    if (abierta === null) return;
+    if (modoDemo || abierta === null) return;
     const t = setInterval(() => traerHilo(abierta), CADA_HILO);
     return () => clearInterval(t);
-  }, [abierta, traerHilo]);
+  }, [abierta, modoDemo, traerHilo]);
 
   function abrir(id: number | null) {
     setAbierta(id);
-    setMensajes([]);
     setAviso(null);
+    if (modoDemo) {
+      setMensajes(id === null ? [] : mensajesDemo);
+      setCargandoHilo(false);
+      return;
+    }
+    setMensajes([]);
     setCargandoHilo(id !== null);
     if (id !== null) traerHilo(id);
   }
@@ -176,6 +191,10 @@ export function Bandeja({
   async function enviar() {
     const limpio = texto.trim();
     if (!limpio || abierta === null || enviando) return;
+    if (modoDemo) {
+      setAviso("Esta es una vista demo. El envío se activará al conectar el número oficial.");
+      return;
+    }
 
     setEnviando(true);
     setAviso(null);
@@ -199,6 +218,7 @@ export function Bandeja({
   }
 
   async function asignar(id: number, a: string) {
+    if (modoDemo) return;
     setAviso(null);
     const r = await fetch(`/api/conversaciones/${id}/asignar`, {
       method: "POST",
@@ -237,7 +257,7 @@ export function Bandeja({
     : [{ clave: "mias" as const, etiqueta: "Asignadas a mí", n: cuenta.mias }];
 
   return (
-    <div className="h-[calc(100dvh-15rem)] min-h-[32rem] overflow-hidden rounded-2xl bg-white ring-1 ring-hair shadow-tarjeta">
+    <div className="h-[calc(100dvh-15rem)] min-h-[32rem] overflow-hidden rounded-2xl bg-white ring-1 ring-[#d7e4df] shadow-elevada">
       <div className="grid h-full lg:grid-cols-[21rem_1fr]">
 
         {/* ---------- columna izquierda: la lista ---------- */}
@@ -246,7 +266,7 @@ export function Bandeja({
             abierta !== null ? "hidden lg:flex" : "flex"
           }`}
         >
-          <div className="shrink-0 border-b border-hair p-3">
+          <div className="shrink-0 border-b border-[#d7e4df] bg-[#f0f2f5] p-3">
             <label className="relative block">
               <Icono
                 nombre="buscar"
@@ -300,10 +320,10 @@ export function Bandeja({
                     <button
                       onClick={() => abrir(f.id)}
                       className={`flex w-full items-start gap-3 border-b border-hair px-3 py-3 text-left transition ${
-                        f.id === abierta ? "bg-coral-50" : "hover:bg-mist"
+                        f.id === abierta ? "bg-[#e7f7ef]" : "hover:bg-[#f5faf7]"
                       }`}
                     >
-                      <span className="grid size-9 shrink-0 place-items-center rounded-full bg-deep text-[0.7rem] font-bold text-white">
+                      <span className="grid size-9 shrink-0 place-items-center rounded-full bg-[#008069] text-[0.7rem] font-bold text-white">
                         {iniciales(f.nombre)}
                       </span>
 
@@ -323,7 +343,7 @@ export function Bandeja({
                           </span>
                           {f.entranteSinResponder && (
                             <span
-                              className="ml-auto size-2 shrink-0 rounded-full bg-coral"
+                              className="ml-auto size-2 shrink-0 rounded-full bg-[#25d366]"
                               title="Esperando respuesta"
                             />
                           )}
@@ -373,7 +393,7 @@ export function Bandeja({
             </div>
           ) : (
             <>
-              <header className="flex shrink-0 items-center gap-3 border-b border-hair px-4 py-3">
+              <header className="flex shrink-0 items-center gap-3 border-b border-[#d7e4df] bg-[#f0f2f5] px-4 py-3">
                 <button
                   onClick={() => abrir(null)}
                   className="-ml-1 grid size-8 shrink-0 place-items-center rounded-lg text-slate hover:bg-mist lg:hidden"
@@ -382,14 +402,21 @@ export function Bandeja({
                   <Icono nombre="volver" className="size-4" />
                 </button>
 
-                <span className="grid size-9 shrink-0 place-items-center rounded-full bg-deep text-[0.7rem] font-bold text-white">
+                <span className="grid size-9 shrink-0 place-items-center rounded-full bg-[#008069] text-[0.7rem] font-bold text-white">
                   {iniciales(conversacion.nombre)}
                 </span>
 
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-[0.88rem] font-semibold text-ink">
-                    {conversacion.nombre}
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <p className="truncate text-[0.88rem] font-semibold text-ink">
+                      {conversacion.nombre}
+                    </p>
+                    {modoDemo && (
+                      <span className="shrink-0 rounded-full bg-[#d9fdd3] px-2 py-0.5 text-[0.61rem] font-bold uppercase tracking-[0.08em] text-[#006b5b]">
+                        Demo
+                      </span>
+                    )}
+                  </div>
                   <p className="truncate text-[0.72rem] text-slate">
                     {conversacion.telefono ?? "Sin teléfono"}
                     {conversacion.asignadoNombre && ` · atiende ${conversacion.asignadoNombre}`}
@@ -397,7 +424,7 @@ export function Bandeja({
                 </div>
 
                 <div className="flex shrink-0 items-center gap-2">
-                  {rol === "admin" && (
+                  {rol === "admin" && !modoDemo && (
                     <select
                       value={conversacion.asignadoA ?? ""}
                       onChange={(e) => e.target.value && asignar(conversacion.id, e.target.value)}
@@ -413,7 +440,7 @@ export function Bandeja({
                 </div>
               </header>
 
-              <div className="min-h-0 flex-1 overflow-y-auto bg-mist px-4 py-4">
+              <div className="min-h-0 flex-1 overflow-y-auto bg-[#efeae2] bg-[radial-gradient(circle_at_center,rgba(11,92,77,0.055)_1px,transparent_1.2px)] bg-[length:18px_18px] px-4 py-4">
                 {cargandoHilo && mensajes.length === 0 ? (
                   <p className="animate-latir py-10 text-center text-[0.8rem] text-slate">
                     Cargando la conversación…
@@ -434,11 +461,11 @@ export function Bandeja({
                             className={`max-w-[80%] rounded-2xl px-3.5 py-2 text-[0.84rem] leading-relaxed ${
                               m.entrante
                                 ? "self-start rounded-bl-md bg-white text-ink ring-1 ring-hair"
-                                : "self-end rounded-br-md bg-coral-100 text-ink"
+                                : "self-end rounded-br-md bg-[#d9fdd3] text-ink shadow-[0_1px_1px_rgba(11,20,26,0.08)]"
                             }`}
                           >
                             {!m.entrante && m.autor && !m.mio && (
-                              <p className="mb-0.5 text-[0.68rem] font-bold text-coral-700">
+                              <p className="mb-0.5 text-[0.68rem] font-bold text-[#008069]">
                                 {m.autor}
                               </p>
                             )}
@@ -458,8 +485,9 @@ export function Bandeja({
                               </a>
                             ))}
 
-                            <p className={`mt-0.5 text-[0.62rem] ${m.entrante ? "text-slate-400" : "text-coral-700/70"}`}>
+                            <p className={`mt-0.5 flex items-center justify-end gap-1 text-[0.62rem] ${m.entrante ? "text-slate-400" : "text-[#667781]"}`}>
                               {reloj(m.en)}
+                              {!m.entrante && <span className="font-bold text-[#53bdeb]" aria-label="Entregado">✓✓</span>}
                             </p>
                           </div>
                         </li>
@@ -476,8 +504,13 @@ export function Bandeja({
                 </p>
               )}
 
-              <footer className="shrink-0 border-t border-hair p-3">
-                {rol === "admin" ? (
+              <footer className="shrink-0 border-t border-[#d7e4df] bg-[#f0f2f5] p-3">
+                {modoDemo ? (
+                  <div className="flex items-center justify-center gap-2 px-1 py-2 text-center text-[0.78rem] font-medium text-[#54656f]">
+                    <Icono nombre="whatsapp" className="size-4 text-[#00a884]" />
+                    Vista de muestra · el envío se activará al conectar el número oficial.
+                  </div>
+                ) : rol === "admin" ? (
                   <p className="px-1 py-2 text-center text-[0.78rem] text-slate">
                     Vista de supervisión. Los administradores no responden mensajes.
                   </p>
