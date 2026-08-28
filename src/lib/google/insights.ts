@@ -12,6 +12,8 @@ type RespuestaSearch = { rows?: FilaSearch[] };
 
 export type ResumenGoogle = {
   configurado: boolean;
+  configuradoAnalitica: boolean;
+  configuradoBusqueda: boolean;
   conectado: boolean;
   error: string | null;
   errorAnalitica: string | null;
@@ -22,9 +24,20 @@ export type ResumenGoogle = {
     vistas: number;
     eventos: number;
     eventosClave: number;
+    sesionesConInteraccion: number;
+    tasaInteraccion: number | null;
+    duracionMediaSegundos: number | null;
+    vistasPorSesion: number | null;
     activosAhora: number | null;
+    canalesDisponibles: boolean;
     canales: { nombre: string; sesiones: number; usuarios: number }[];
+    diasDisponibles: boolean;
     dias: { fecha: string; sesiones: number; usuarios: number }[];
+    paginasDisponibles: boolean;
+    paginas: { ruta: string; titulo: string; vistas: number; usuarios: number }[];
+    eventosDisponibles: boolean;
+    eventosDetalle: { nombre: string; total: number; claves: number }[];
+    contactosPorCanal: { canal: string; total: number }[] | null;
   } | null;
   busqueda: {
     clics: number;
@@ -37,6 +50,13 @@ export type ResumenGoogle = {
 };
 
 const numero = (valor: string | undefined) => Number(valor) || 0;
+
+/** Analytics entrega la dimensión `date` como AAAAMMDD; el resto del panel usa ISO civil. */
+const fechaAnalitica = (valor: string | undefined) => {
+  const fecha = valor ?? "";
+  const compacta = /^(\d{4})(\d{2})(\d{2})$/.exec(fecha);
+  return compacta ? `${compacta[1]}-${compacta[2]}-${compacta[3]}` : fecha;
+};
 
 async function pedirGoogle<T>(url: string, token: string, cuerpo: unknown): Promise<T> {
   const respuesta = await fetch(url, {
@@ -64,9 +84,14 @@ const diaAnterior = (fecha: string) => {
 export async function resumenGoogle(desde: string, hasta: string): Promise<ResumenGoogle> {
   const propertyId = process.env.GA4_PROPERTY_ID;
   const siteUrl = process.env.SEARCH_CONSOLE_SITE_URL;
-  const configurado = Boolean(googleOAuthConfigurado() && propertyId && siteUrl);
+  const oauthConfigurado = googleOAuthConfigurado();
+  const configuradoAnalitica = Boolean(oauthConfigurado && propertyId);
+  const configuradoBusqueda = Boolean(oauthConfigurado && siteUrl);
+  const configurado = configuradoAnalitica && configuradoBusqueda;
   const base: ResumenGoogle = {
     configurado,
+    configuradoAnalitica,
+    configuradoBusqueda,
     conectado: false,
     error: null,
     errorAnalitica: null,
@@ -74,24 +99,40 @@ export async function resumenGoogle(desde: string, hasta: string): Promise<Resum
     analitica: null,
     busqueda: null,
   };
-  if (!configurado) return base;
+  if (!configuradoAnalitica && !configuradoBusqueda) return base;
 
   let token: string | null;
   try {
     token = await tokenGoogle();
   } catch (error) {
-    return { ...base, error: error instanceof Error ? error.message : "No se pudo conectar con Google." };
+    const mensaje = error instanceof Error ? error.message : "No se pudo conectar con Google.";
+    return {
+      ...base,
+      error: mensaje,
+      errorAnalitica: configuradoAnalitica ? mensaje : null,
+      errorBusqueda: configuradoBusqueda ? mensaje : null,
+    };
   }
   if (!token) return base;
 
   const hastaBusqueda = diaAnterior(hasta);
   const rangoBusqueda = { startDate: desde, endDate: hastaBusqueda < desde ? desde : hastaBusqueda };
 
-  const [resultadoGa, resultadoSearch] = await Promise.allSettled([
-    Promise.all([
+  const [resultadosGa, resultadosSearch] = await Promise.all([
+    configuradoAnalitica ? Promise.allSettled([
       pedirGoogle<RespuestaGa>(`${ANALYTICS_URL}/properties/${propertyId}:runReport`, token, {
         dateRanges: [{ startDate: desde, endDate: hasta }],
-        metrics: ["activeUsers", "sessions", "screenPageViews", "eventCount", "keyEvents"].map((name) => ({ name })),
+        metrics: [
+          "activeUsers",
+          "sessions",
+          "screenPageViews",
+          "eventCount",
+          "keyEvents",
+          "engagedSessions",
+          "engagementRate",
+          "averageSessionDuration",
+          "screenPageViewsPerSession",
+        ].map((name) => ({ name })),
       }),
       pedirGoogle<RespuestaGa>(`${ANALYTICS_URL}/properties/${propertyId}:runReport`, token, {
         dateRanges: [{ startDate: desde, endDate: hasta }],
@@ -110,8 +151,35 @@ export async function resumenGoogle(desde: string, hasta: string): Promise<Resum
       pedirGoogle<RespuestaGa>(`${ANALYTICS_URL}/properties/${propertyId}:runRealtimeReport`, token, {
         metrics: [{ name: "activeUsers" }],
       }),
-    ]),
-    Promise.all([
+      pedirGoogle<RespuestaGa>(`${ANALYTICS_URL}/properties/${propertyId}:runReport`, token, {
+        dateRanges: [{ startDate: desde, endDate: hasta }],
+        dimensions: [{ name: "pagePath" }, { name: "pageTitle" }],
+        metrics: [{ name: "screenPageViews" }, { name: "activeUsers" }],
+        orderBys: [{ metric: { metricName: "screenPageViews" }, desc: true }],
+        limit: 12,
+      }),
+      pedirGoogle<RespuestaGa>(`${ANALYTICS_URL}/properties/${propertyId}:runReport`, token, {
+        dateRanges: [{ startDate: desde, endDate: hasta }],
+        dimensions: [{ name: "eventName" }],
+        metrics: [{ name: "eventCount" }, { name: "keyEvents" }],
+        orderBys: [{ metric: { metricName: "eventCount" }, desc: true }],
+        limit: 100,
+      }),
+      pedirGoogle<RespuestaGa>(`${ANALYTICS_URL}/properties/${propertyId}:runReport`, token, {
+        dateRanges: [{ startDate: desde, endDate: hasta }],
+        dimensions: [{ name: "customEvent:canal" }],
+        metrics: [{ name: "eventCount" }],
+        dimensionFilter: {
+          filter: {
+            fieldName: "eventName",
+            stringFilter: { matchType: "EXACT", value: "contact" },
+          },
+        },
+        orderBys: [{ metric: { metricName: "eventCount" }, desc: true }],
+        limit: 20,
+      }),
+    ]) : Promise.resolve(null),
+    configuradoBusqueda ? Promise.allSettled([
       pedirGoogle<RespuestaSearch>(
         `${SEARCH_CONSOLE_URL}/sites/${encodeURIComponent(siteUrl!)}/searchAnalytics/query`,
         token,
@@ -141,7 +209,7 @@ export async function resumenGoogle(desde: string, hasta: string): Promise<Resum
           dataState: "final",
         },
       ),
-    ]),
+    ]) : Promise.resolve(null),
   ]);
 
   let analitica: ResumenGoogle["analitica"] = null;
@@ -149,55 +217,92 @@ export async function resumenGoogle(desde: string, hasta: string): Promise<Resum
   let errorAnalitica: string | null = null;
   let errorBusqueda: string | null = null;
 
-  if (resultadoGa.status === "fulfilled") {
-    const [totalGa, canalesGa, diasGa, tiempoRealGa] = resultadoGa.value;
-    const total = totalGa.rows?.[0]?.metricValues ?? [];
-    const realtime = tiempoRealGa.rows?.[0]?.metricValues?.[0]?.value;
-    analitica = {
+  if (resultadosGa) {
+    const [totalGa, canalesGa, diasGa, tiempoRealGa, paginasGa, eventosGa, contactosGa] = resultadosGa;
+    if (totalGa.status === "fulfilled") {
+      const total = totalGa.value.rows?.[0]?.metricValues ?? [];
+      const realtime = tiempoRealGa.status === "fulfilled"
+        ? tiempoRealGa.value.rows?.[0]?.metricValues?.[0]?.value
+        : undefined;
+      const canales = canalesGa.status === "fulfilled" ? canalesGa.value.rows ?? [] : [];
+      const dias = diasGa.status === "fulfilled" ? diasGa.value.rows ?? [] : [];
+      const paginas = paginasGa.status === "fulfilled" ? paginasGa.value.rows ?? [] : [];
+      const eventos = eventosGa.status === "fulfilled" ? eventosGa.value.rows ?? [] : [];
+      analitica = {
         usuarios: numero(total[0]?.value),
         sesiones: numero(total[1]?.value),
         vistas: numero(total[2]?.value),
         eventos: numero(total[3]?.value),
         eventosClave: numero(total[4]?.value),
+        sesionesConInteraccion: numero(total[5]?.value),
+        tasaInteraccion: total[6]?.value === undefined ? null : numero(total[6]?.value) * 100,
+        duracionMediaSegundos: total[7]?.value === undefined ? null : numero(total[7]?.value),
+        vistasPorSesion: total[8]?.value === undefined ? null : numero(total[8]?.value),
         activosAhora: realtime === undefined ? null : numero(realtime),
-        canales: (canalesGa.rows ?? []).map((fila) => ({
+        canalesDisponibles: canalesGa.status === "fulfilled",
+        canales: canales.map((fila) => ({
           nombre: fila.dimensionValues?.[0]?.value ?? "Sin clasificar",
           sesiones: numero(fila.metricValues?.[0]?.value),
           usuarios: numero(fila.metricValues?.[1]?.value),
         })),
-        dias: (diasGa.rows ?? []).map((fila) => ({
-          fecha: fila.dimensionValues?.[0]?.value ?? "",
+        diasDisponibles: diasGa.status === "fulfilled",
+        dias: dias.map((fila) => ({
+          fecha: fechaAnalitica(fila.dimensionValues?.[0]?.value),
           sesiones: numero(fila.metricValues?.[0]?.value),
           usuarios: numero(fila.metricValues?.[1]?.value),
         })),
-    };
-  } else {
-    errorAnalitica = resultadoGa.reason instanceof Error ? resultadoGa.reason.message : "Google Analytics no respondió.";
+        paginasDisponibles: paginasGa.status === "fulfilled",
+        paginas: paginas.map((fila) => ({
+          ruta: fila.dimensionValues?.[0]?.value ?? "/",
+          titulo: fila.dimensionValues?.[1]?.value ?? "Página sin título",
+          vistas: numero(fila.metricValues?.[0]?.value),
+          usuarios: numero(fila.metricValues?.[1]?.value),
+        })),
+        eventosDisponibles: eventosGa.status === "fulfilled",
+        eventosDetalle: eventos.map((fila) => ({
+          nombre: fila.dimensionValues?.[0]?.value ?? "",
+          total: numero(fila.metricValues?.[0]?.value),
+          claves: numero(fila.metricValues?.[1]?.value),
+        })),
+        contactosPorCanal: contactosGa.status === "fulfilled"
+          ? (contactosGa.value.rows ?? []).map((fila) => ({
+              canal: fila.dimensionValues?.[0]?.value ?? "Sin clasificar",
+              total: numero(fila.metricValues?.[0]?.value),
+            }))
+          : null,
+      };
+    } else {
+      errorAnalitica = totalGa.reason instanceof Error ? totalGa.reason.message : "La medición del sitio no respondió.";
+    }
   }
 
-  if (resultadoSearch.status === "fulfilled") {
-    const [totalSearch, consultasSearch, diasSearch] = resultadoSearch.value;
-    const total = totalSearch.rows?.[0];
-    busqueda = {
+  if (resultadosSearch) {
+    const [totalSearch, consultasSearch, diasSearch] = resultadosSearch;
+    if (totalSearch.status === "fulfilled") {
+      const total = totalSearch.value.rows?.[0];
+      const consultas = consultasSearch.status === "fulfilled" ? consultasSearch.value.rows ?? [] : [];
+      const dias = diasSearch.status === "fulfilled" ? diasSearch.value.rows ?? [] : [];
+      busqueda = {
         clics: total?.clicks ?? 0,
         impresiones: total?.impressions ?? 0,
         ctr: total?.ctr === undefined ? null : total.ctr * 100,
         posicion: total?.position ?? null,
-        consultas: (consultasSearch.rows ?? []).map((fila) => ({
+        consultas: consultas.map((fila) => ({
           texto: fila.keys?.[0] ?? "—",
           clics: fila.clicks ?? 0,
           impresiones: fila.impressions ?? 0,
           posicion: fila.position ?? 0,
         })),
-        dias: (diasSearch.rows ?? []).map((fila) => ({
+        dias: dias.map((fila) => ({
           fecha: fila.keys?.[0] ?? "",
           clics: fila.clicks ?? 0,
           impresiones: fila.impressions ?? 0,
           posicion: fila.position ?? 0,
         })),
-    };
-  } else {
-    errorBusqueda = resultadoSearch.reason instanceof Error ? resultadoSearch.reason.message : "Search Console no respondió.";
+      };
+    } else {
+      errorBusqueda = totalSearch.reason instanceof Error ? totalSearch.reason.message : "La medición de búsqueda no respondió.";
+    }
   }
 
   return {

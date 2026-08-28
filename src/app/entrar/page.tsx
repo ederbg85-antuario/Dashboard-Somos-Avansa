@@ -95,19 +95,16 @@ export default async function PaginaEntrar({
   );
 }
 
-/** Aviso honesto cuando faltan variables de entorno, en vez de un error opaco. */
+/** Aviso honesto cuando falta la conexión principal, en vez de un error opaco. */
 function SinCredenciales() {
   return (
     <div className="rounded-2xl bg-sand-50 p-5 ring-1 ring-sand-100">
       <h3 className="flex items-center gap-2 text-[0.9rem] font-semibold text-ink">
         <Icono nombre="alerta" className="size-4 text-sand" />
-        Falta conectar Supabase
+        Servicio temporalmente no disponible
       </h3>
       <p className="mt-2 text-[0.8rem] leading-relaxed text-slate">
-        Define <code className="rounded bg-white px-1 py-0.5 text-[0.75rem]">NEXT_PUBLIC_SUPABASE_URL</code> y{" "}
-        <code className="rounded bg-white px-1 py-0.5 text-[0.75rem]">NEXT_PUBLIC_SUPABASE_ANON_KEY</code>{" "}
-        en <code className="rounded bg-white px-1 py-0.5 text-[0.75rem]">.env.local</code> (o en las
-        variables de entorno del despliegue) y recarga.
+        El acceso seguro no está conectado en este entorno. Pide a administración que revise la conexión e intenta de nuevo.
       </p>
     </div>
   );

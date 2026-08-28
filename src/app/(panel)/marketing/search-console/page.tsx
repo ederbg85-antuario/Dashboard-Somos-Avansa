@@ -13,7 +13,7 @@ import { exigirRol } from "@/lib/supabase/sesion";
 import { CabeceraMarketing, EstadoFuente, HeroPlataforma, MetricaPlataforma } from "../_componentes/Presentacion";
 import estilos from "../marketing.module.css";
 
-export const metadata: Metadata = { title: "Search Console · Marketing" };
+export const metadata: Metadata = { title: "SEO en Google · Marketing" };
 export const dynamic = "force-dynamic";
 
 export default async function SearchConsole({
@@ -39,17 +39,17 @@ export default async function SearchConsole({
   return (
     <>
       <CabeceraMarketing
-        titulo="Search Console"
+        titulo="SEO en Google"
         apoyo="Visibilidad orgánica de somosavansa.com: consultas, clics, impresiones y posición media directamente desde Google."
         acciones={<SelectorPeriodo actual={rango.clave} />}
       />
 
       <HeroPlataforma
         plataforma="search"
-        tono="search"
+        tono="google"
         ceja={`${rango.etiqueta} · somosavansa.com`}
-        titulo={<>Lo que la gente <span className="text-white/70">ya está buscando.</span></>}
-        texto="Search Console consolida información con retraso; por eso el reporte cierra en el último día disponible y no presenta el día actual como completo."
+        titulo={<>Lo que la gente <span className="text-[#4285F4]">ya está buscando.</span></>}
+        texto="Google consolida la búsqueda con retraso; el reporte cierra en el último día completo disponible."
         cifras={[
           { etiqueta: "Clics orgánicos", valor: busqueda ? numero(busqueda.clics) : "—" },
           { etiqueta: "Impresiones", valor: busqueda ? numero(busqueda.impresiones) : "—" },
@@ -57,23 +57,27 @@ export default async function SearchConsole({
         ]}
       />
 
-      {!google.configurado || !google.conectado || google.errorBusqueda ? (
+      {!google.configuradoBusqueda || !google.conectado || google.errorBusqueda ? (
         <div className="mt-4">
           <EstadoFuente
             plataforma="search"
-            titulo={google.errorBusqueda ? "Search Console necesita revisión" : "Conecta la propiedad de Avansa"}
-            texto={google.errorBusqueda ?? (google.configurado ? "Autoriza la cuenta Google con acceso de lectura a somosavansa.com." : "Faltan las credenciales del proyecto Google en producción.")}
+            titulo={google.errorBusqueda ? "SEO necesita revisión" : "Conecta el SEO de Avansa"}
+            texto={google.errorBusqueda
+              ? "La lectura de Google no está disponible ahora. Intenta de nuevo más tarde."
+              : google.configuradoBusqueda
+                ? "Autoriza la cuenta con acceso de lectura a somosavansa.com."
+                : "Falta completar la propiedad del sitio en producción."}
             estado={google.errorBusqueda ? "error" : "pendiente"}
-            accion={google.configurado && !google.conectado ? <BotonEnlace href="/api/integraciones/google/conectar" tono="coral" tamano="sm">Conectar Google</BotonEnlace> : undefined}
+            accion={google.configuradoBusqueda && !google.conectado ? <BotonEnlace href="/api/integraciones/google/conectar" tono="coral" tamano="sm">Conectar Google</BotonEnlace> : undefined}
           />
         </div>
       ) : null}
 
       <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <MetricaPlataforma rotulo="Clics" valor={busqueda ? numero(busqueda.clics) : "—"} apoyo="Visitas procedentes de resultados orgánicos" icono="enlace" color="#4285F4" destacado />
-        <MetricaPlataforma rotulo="Impresiones" valor={busqueda ? numero(busqueda.impresiones) : "—"} apoyo="Apariciones en resultados de Google" icono="ojo" color="#5F9AF3" />
-        <MetricaPlataforma rotulo="CTR orgánico" valor={busqueda ? porcentaje(busqueda.ctr, 2) : "—"} apoyo="Clics divididos entre impresiones" icono="destello" color="#2FB6A3" />
-        <MetricaPlataforma rotulo="Posición media" valor={busqueda?.posicion === null || busqueda?.posicion === undefined ? "—" : busqueda.posicion.toFixed(1)} apoyo="Promedio ponderado reportado por Google" icono="reporte" color="#D9AE83" />
+        <MetricaPlataforma rotulo="Impresiones" valor={busqueda ? numero(busqueda.impresiones) : "—"} apoyo="Apariciones en resultados de Google" icono="ojo" color="#EA4335" />
+        <MetricaPlataforma rotulo="CTR orgánico" valor={busqueda ? porcentaje(busqueda.ctr, 2) : "—"} apoyo="Clics divididos entre impresiones" icono="destello" color="#34A853" />
+        <MetricaPlataforma rotulo="Posición media" valor={busqueda?.posicion === null || busqueda?.posicion === undefined ? "—" : busqueda.posicion.toFixed(1)} apoyo="Promedio ponderado reportado por Google" icono="reporte" color="#FBBC04" />
       </div>
 
       <div className="mt-4 grid gap-4 xl:grid-cols-2">
@@ -120,14 +124,18 @@ export default async function SearchConsole({
               </tbody>
             </Tabla>
           ) : (
-            <Vacio icono="buscar" titulo="Sin detalle orgánico" texto="Amplía el periodo o espera a que Search Console consolide información." />
+            <Vacio icono="buscar" titulo="Sin detalle orgánico" texto="Amplía el periodo o espera a que Google consolide la información." />
           )}
         </Tarjeta>
       </div>
 
       {google.analitica ? (
         <Tarjeta className="mt-4 !bg-sand-50">
-          <CabezaTarjeta titulo="Contexto en Analytics" apoyo="Después del clic, GA4 mide la navegación del sitio con una metodología distinta." />
+          <CabezaTarjeta
+            titulo="Después del clic"
+            apoyo="El sitio mide la navegación con una metodología distinta a la búsqueda."
+            accion={<BotonEnlace href={`/marketing/sitio-web?periodo=${rango.clave}`} tono="fantasma" tamano="sm">Ver sitio web</BotonEnlace>}
+          />
           <div className="mt-4 grid gap-3 sm:grid-cols-3">
             <Contexto etiqueta="Usuarios" valor={numero(google.analitica.usuarios)} />
             <Contexto etiqueta="Sesiones" valor={numero(google.analitica.sesiones)} />

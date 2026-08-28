@@ -34,7 +34,7 @@ export default async function Conversaciones() {
           <Vacio
             icono="alerta"
             titulo="La bandeja no está disponible"
-            texto="No fue posible consultar Chatwoot en este momento. Recarga la página para volver a intentarlo; no se muestran conversaciones de ejemplo para evitar confusiones."
+            texto="No fue posible consultar los mensajes en este momento. Recarga la página para volver a intentarlo; no se muestran conversaciones de ejemplo para evitar confusiones."
           />
         </Tarjeta>
       </>

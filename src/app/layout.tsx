@@ -6,12 +6,20 @@ const scriptTema = `
   (function () {
     try {
       var preferencia = localStorage.getItem("avansa:tema");
-      var oscuro = preferencia === "dark" ||
-        (preferencia !== "light" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+      var navegacion = localStorage.getItem("avansa:navegacion:v1");
+      var oscuro = preferencia === "dark";
       document.documentElement.dataset.theme = oscuro ? "dark" : "light";
+      document.documentElement.dataset.navegacion = navegacion === "compacta" ? "compacta" : "amplia";
       document.documentElement.style.colorScheme = oscuro ? "dark" : "light";
+      var actualizarColor = function () {
+        var metaTema = document.querySelector('meta[name="theme-color"]');
+        if (metaTema) metaTema.setAttribute("content", oscuro ? "#081820" : "#0F2D3D");
+      };
+      actualizarColor();
+      document.addEventListener("DOMContentLoaded", actualizarColor, { once: true });
     } catch (_) {
       document.documentElement.dataset.theme = "light";
+      document.documentElement.dataset.navegacion = "amplia";
       document.documentElement.style.colorScheme = "light";
     }
   })();
@@ -30,7 +38,7 @@ export const metadata: Metadata = {
     template: "%s · avansa",
   },
   description:
-    "Sistema interno de avansa: CRM, campañas de Meta Ads y panel financiero.",
+    "Sistema interno de avansa: CRM, publicidad y panel financiero.",
   icons: {
     icon: [
       { url: "/marca/favicon/favicon.svg", type: "image/svg+xml" },

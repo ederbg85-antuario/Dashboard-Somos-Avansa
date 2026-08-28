@@ -160,7 +160,7 @@ async function metricasDeChatwoot(
       ...vacio,
       estado: {
         estado: "sin-configurar",
-        detalle: "La carga activa y la primera respuesta aparecerán al conectar Chatwoot.",
+        detalle: "La carga activa y la primera respuesta aparecerán al conectar la bandeja oficial.",
         conversacionesRevisadas: 0,
         fuenteRespuestas: null,
       },
@@ -316,11 +316,11 @@ async function metricasDeChatwoot(
       ? "reporting-events" as const
       : "mensajes-firmados" as const;
 
-    let detalle = "Carga abierta y tiempos oficiales de respuesta verificados con Chatwoot.";
+    let detalle = "Carga abierta y tiempos oficiales de respuesta verificados con la bandeja.";
     if (!eventosResultado.listo) {
-      detalle = "Carga activa verificada; la primera respuesta usa mensajes firmados porque Chatwoot no entregó reporting events.";
+      detalle = "Carga activa verificada; la primera respuesta usa los mensajes confirmados por Avansa.";
     } else if (eventosRecortados) {
-      detalle = "Los reporting events excedieron 500 registros; las métricas de respuesta cubren sólo las primeras 20 páginas.";
+      detalle = "La actividad excedió 500 registros; las métricas de respuesta cubren el bloque más reciente disponible.";
     } else if (recortadas) {
       detalle = `Primera respuesta calculada sobre los ${MAX_CHATS_PRIMERA_RESPUESTA} chats firmados más recientes del periodo.`;
     } else if (fallidas > 0) {
@@ -344,7 +344,7 @@ async function metricasDeChatwoot(
       ...vacio,
       estado: {
         estado: "error",
-        detalle: "Chatwoot no respondió; las métricas del CRM siguen disponibles.",
+        detalle: "La bandeja oficial no respondió; las métricas comerciales siguen disponibles.",
         conversacionesRevisadas: 0,
         fuenteRespuestas: null,
       },
@@ -422,7 +422,7 @@ async function cargarReporteOperativoChatwoot(
     estado: exitos === resultados.length ? "listo" : exitos === 0 ? "error" : "parcial",
     detalle: exitos === resultados.length
       ? "Resumen y tendencia limitados a la bandeja oficial; identidades agrupadas al alcance completo de la cuenta."
-      : "Chatwoot entregó sólo una parte del informe operativo; cada bloque conserva su alcance y fuente.",
+      : "La bandeja entregó sólo una parte del informe operativo; cada bloque conserva su alcance.",
     resumen: resumen.status === "fulfilled" ? resumen.value : null,
     tendencia: [...serie.entries()]
       .sort(([a], [b]) => a - b)

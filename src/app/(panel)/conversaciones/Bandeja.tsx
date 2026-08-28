@@ -85,6 +85,33 @@ function terminoBusqueda(valor: string): string {
   return valor.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("es-MX");
 }
 
+function IconoPantallaCompleta({ activa }: { activa: boolean }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="size-4"
+      aria-hidden="true"
+    >
+      {activa ? (
+        <>
+          <path d="M9 3v4a2 2 0 0 1-2 2H3M15 3v4a2 2 0 0 0 2 2h4" />
+          <path d="M9 21v-4a2 2 0 0 0-2-2H3M15 21v-4a2 2 0 0 1 2-2h4" />
+        </>
+      ) : (
+        <>
+          <path d="M9 3H5a2 2 0 0 0-2 2v4M15 3h4a2 2 0 0 1 2 2v4" />
+          <path d="M9 21H5a2 2 0 0 1-2-2v-4M15 21h4a2 2 0 0 0 2-2v-4" />
+        </>
+      )}
+    </svg>
+  );
+}
+
 export function Bandeja({
   inicial, ocultas: ocultasIniciales, rol, equipo, modoDemo = false,
   mensajesDemo = SIN_MENSAJES, etapasDisponibles: etapasIniciales = true,
@@ -110,9 +137,12 @@ export function Bandeja({
   const [busca, setBusca] = useState("");
   const [etapasDisponibles, setEtapasDisponibles] = useState(etapasIniciales);
   const [listaDesactualizada, setListaDesactualizada] = useState(false);
+  const [listaVisible, setListaVisible] = useState(true);
+  const [pantallaCompleta, setPantallaCompleta] = useState(false);
 
   const finDelHilo = useRef<HTMLDivElement>(null);
   const cajaTexto = useRef<HTMLTextAreaElement>(null);
+  const raizBandeja = useRef<HTMLDivElement>(null);
 
   const conversacion = filas.find((f) => f.id === abierta) ?? null;
   const atendibles = useMemo(() => equipo.filter((p) => p.rol === "asesor"), [equipo]);
@@ -209,6 +239,38 @@ export function Bandeja({
   useEffect(() => {
     finDelHilo.current?.scrollIntoView({ block: "end" });
   }, [mensajes]);
+
+  useEffect(() => {
+    if (!pantallaCompleta) return;
+
+    const desbordamientoAnterior = document.body.style.overflow;
+    const anterioresInert = new Map<HTMLElement, boolean>();
+    const salirConEscape = (evento: KeyboardEvent) => {
+      if (evento.key === "Escape") setPantallaCompleta(false);
+    };
+
+    // Hace inertes los hermanos en cada nivel del árbol. Así Tab permanece
+    // dentro de la bandeja aunque ésta viva dentro del layout del panel.
+    let nivel: HTMLElement | null = raizBandeja.current;
+    while (nivel?.parentElement) {
+      const padre: HTMLElement = nivel.parentElement;
+      for (const hermano of padre.children) {
+        if (hermano === nivel || !(hermano instanceof HTMLElement)) continue;
+        if (!anterioresInert.has(hermano)) anterioresInert.set(hermano, hermano.inert);
+        hermano.inert = true;
+      }
+      nivel = padre;
+      if (padre === document.body) break;
+    }
+
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", salirConEscape);
+    return () => {
+      document.body.style.overflow = desbordamientoAnterior;
+      for (const [elemento, estadoAnterior] of anterioresInert) elemento.inert = estadoAnterior;
+      window.removeEventListener("keydown", salirConEscape);
+    };
+  }, [pantallaCompleta]);
 
   // ---------- acciones ----------
 
@@ -307,15 +369,14 @@ export function Bandeja({
       : []),
   ];
   const hayFiltro = Boolean(busca.trim()) || filtroRapido !== "todos" || filtroEtapa !== "todas";
+  const filtrosActivos = Number(filtroRapido !== "todos") + Number(filtroEtapa !== "todas");
 
   function elegirFiltroRapido(clave: FiltroRapido) {
     setFiltroRapido(clave);
-    setFiltroEtapa("todas");
   }
 
   function elegirEtapa(clave: FiltroEtapa) {
     setFiltroEtapa(clave);
-    setFiltroRapido("todos");
   }
 
   function limpiarFiltros() {
@@ -325,21 +386,30 @@ export function Bandeja({
   }
 
   return (
-    <div className={`${
-      modoDemo
-        ? "h-[calc(100dvh-19.5rem)] min-h-[27rem]"
-        : "h-[calc(100dvh-15rem)] min-h-[32rem]"
-    } animate-entrar overflow-hidden rounded-[1.75rem] bg-white shadow-flotante`}>
-      <div className="grid h-full lg:grid-cols-[20rem_1fr] xl:grid-cols-[22rem_1fr]">
+    <div
+      ref={raizBandeja}
+      role={pantallaCompleta ? "dialog" : undefined}
+      aria-modal={pantallaCompleta ? true : undefined}
+      aria-label={pantallaCompleta ? "Bandeja de entrada en pantalla completa" : undefined}
+      className={`animate-entrar overflow-hidden bg-paper shadow-flotante ${
+        pantallaCompleta
+          ? "fixed inset-0 z-[80] h-dvh min-h-0 rounded-none"
+          : `${modoDemo
+            ? "h-[calc(100dvh-19.5rem)] min-h-[27rem]"
+            : "h-[calc(100dvh-15rem)] min-h-[32rem]"} rounded-[1.75rem]`
+      }`}
+    >
+      <div className={`grid h-full min-w-0 grid-cols-[minmax(0,1fr)] ${listaVisible ? "lg:grid-cols-[20rem_minmax(0,1fr)] xl:grid-cols-[22rem_minmax(0,1fr)]" : "lg:grid-cols-1"}`}>
 
         {/* ---------- columna izquierda: la lista ---------- */}
         <aside
-          className={`relative flex h-full min-h-0 flex-col bg-paper lg:shadow-[8px_0_24px_-22px_rgba(15,45,61,0.45)] ${
-            abierta !== null ? "hidden lg:flex" : "flex"
-          }`}
+          aria-label="Lista de chats"
+          className={`relative h-full min-h-0 min-w-0 flex-col bg-paper lg:shadow-[8px_0_24px_-22px_rgba(15,45,61,0.45)] ${
+            abierta !== null ? "hidden" : "flex"
+          } ${listaVisible ? "lg:flex" : "lg:hidden"}`}
         >
           <div className="shrink-0 bg-white p-3 shadow-[0_10px_28px_-25px_rgba(15,45,61,0.5)]">
-            <div className="mb-2.5 flex items-center justify-between gap-3 px-0.5">
+            <div className="flex items-center justify-between gap-2 px-0.5">
               <p className="flex items-center gap-2 text-[0.9rem] font-semibold tracking-tight text-deep">
                 <span className="grid size-7 place-items-center rounded-lg bg-coral-50 text-coral">
                   <Icono nombre="bandeja" className="size-3.5" />
@@ -355,75 +425,124 @@ export function Bandeja({
                   />
                 )}
               </p>
-              {hayFiltro && (
+              <div className="flex items-center gap-1">
+                {abierta === null ? (
+                  <button
+                    type="button"
+                    onClick={() => setPantallaCompleta((actual) => !actual)}
+                    aria-pressed={pantallaCompleta}
+                    aria-label={pantallaCompleta ? "Salir de pantalla completa" : "Ver en pantalla completa"}
+                    title={pantallaCompleta ? "Salir de pantalla completa" : "Pantalla completa"}
+                    className="grid size-8 place-items-center rounded-lg text-slate transition hover:bg-mist hover:text-coral"
+                  >
+                    <IconoPantallaCompleta activa={pantallaCompleta} />
+                  </button>
+                ) : null}
                 <button
                   type="button"
-                  onClick={limpiarFiltros}
-                  className="rounded-lg bg-mist px-2 py-1 text-[0.65rem] font-semibold text-slate transition hover:bg-coral-50 hover:text-coral-700"
+                  onClick={() => setListaVisible(false)}
+                  aria-label="Ocultar lista de chats"
+                  title="Ocultar lista de chats"
+                  className="hidden size-8 place-items-center rounded-lg text-slate transition hover:bg-mist hover:text-coral lg:grid"
                 >
-                  Limpiar
+                  <Icono nombre="volver" className="size-4" />
                 </button>
-              )}
+              </div>
             </div>
 
-            <label className="relative block">
-              <span className="sr-only">Buscar en la bandeja</span>
-              <Icono
-                nombre="buscar"
-                className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400"
-              />
-              <input
-                type="search"
-                value={busca}
-                onChange={(e) => setBusca(e.target.value)}
-                placeholder="Buscar chats"
-                className="h-9 w-full rounded-xl bg-mist/80 pl-9 pr-3 text-[0.78rem] text-ink shadow-inner placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-coral/30"
-              />
-            </label>
+            <div className="mt-2 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-1.5">
+              <label className="relative min-w-0 flex-1">
+                <span className="sr-only">Buscar en la bandeja</span>
+                <Icono
+                  nombre="buscar"
+                  className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400"
+                />
+                <input
+                  type="search"
+                  value={busca}
+                  onChange={(e) => setBusca(e.target.value)}
+                  placeholder="Buscar chats"
+                  className="h-9 w-full rounded-xl bg-mist/80 pl-9 pr-3 text-[0.78rem] text-ink shadow-inner placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-coral/40"
+                />
+              </label>
 
-            <div className="mt-2.5 flex flex-wrap gap-1.5" aria-label="Filtros rápidos">
-              {filtrosRapidos.map((filtro) => (
-                <button
-                  key={filtro.clave}
-                  type="button"
-                  onClick={() => elegirFiltroRapido(filtro.clave)}
-                  aria-pressed={filtroRapido === filtro.clave}
-                  className={`inline-flex min-w-0 items-center justify-center rounded-lg px-2.5 py-1.5 text-[0.67rem] font-semibold transition-all duration-200 ${
-                    filtroRapido === filtro.clave
-                      ? "bg-deep text-white shadow-tarjeta"
-                      : "bg-mist/70 text-slate hover:bg-white hover:text-ink hover:shadow-tarjeta"
-                  }`}
-                >
-                  {filtro.etiqueta}
-                  <span className={filtroRapido === filtro.clave ? "ml-1 opacity-65" : "ml-1 text-slate-400"}>
-                    {filtro.n}
-                  </span>
-                </button>
-              ))}
+              <details className="group relative shrink-0">
+                <summary className="flex h-9 cursor-pointer list-none items-center gap-1.5 rounded-xl bg-mist px-2.5 text-[0.7rem] font-semibold text-deep transition hover:bg-coral-50 hover:text-coral-700 [&::-webkit-details-marker]:hidden">
+                  <Icono nombre="filtro" className="size-3.5 text-coral" />
+                  Filtros
+                  {filtrosActivos > 0 ? (
+                    <span className="cifra grid min-w-4 place-items-center rounded-full bg-[#B42341] px-1 py-0.5 text-[0.56rem] font-bold text-white">
+                      {filtrosActivos}
+                    </span>
+                  ) : null}
+                </summary>
+
+                <div className="absolute right-0 z-30 mt-2 w-[calc(100vw-3.5rem)] max-w-72 rounded-2xl bg-white p-3 shadow-flotante">
+                  <fieldset>
+                    <legend className="px-0.5 text-[0.67rem] font-semibold uppercase tracking-[0.1em] text-slate">
+                      Estado del chat
+                    </legend>
+                    <div className="mt-2 grid grid-cols-2 gap-1.5">
+                      {filtrosRapidos.map((filtro) => (
+                        <button
+                          key={filtro.clave}
+                          type="button"
+                          onClick={() => elegirFiltroRapido(filtro.clave)}
+                          aria-pressed={filtroRapido === filtro.clave}
+                          className={`flex min-w-0 items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-left text-[0.68rem] font-semibold transition ${
+                            filtroRapido === filtro.clave
+                              ? "bg-deep text-white shadow-tarjeta"
+                              : "bg-mist text-slate hover:bg-coral-50 hover:text-coral-700"
+                          }`}
+                        >
+                          <span className="truncate">{filtro.etiqueta}</span>
+                          <span className={`cifra shrink-0 ${filtroRapido === filtro.clave ? "text-white/75" : "text-slate-400"}`}>
+                            {filtro.n}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </fieldset>
+
+                  <label className="mt-3 block">
+                    <span className="px-0.5 text-[0.67rem] font-semibold uppercase tracking-[0.1em] text-slate">
+                      Etapa comercial
+                    </span>
+                    <span className="mt-1.5 flex items-center gap-2 rounded-xl bg-mist px-2.5 py-1.5">
+                      <Icono nombre="embudo" className="size-3.5 shrink-0 text-coral" />
+                      <select
+                        value={filtroEtapa}
+                        onChange={(e) => elegirEtapa(e.target.value as FiltroEtapa)}
+                        disabled={!etapasDisponibles}
+                        className="h-7 min-w-0 flex-1 bg-transparent text-[0.7rem] font-semibold text-deep outline-none disabled:cursor-not-allowed disabled:text-slate-400"
+                      >
+                        <option value="todas">
+                          {etapasDisponibles ? "Todas las etapas" : "Etapas no disponibles"}
+                        </option>
+                        {etapasDisponibles && ETAPAS.map((etapa) => (
+                          <option key={etapa.clave} value={etapa.clave}>
+                            {etapa.nombre} ({cuentaEtapas.get(etapa.clave) ?? 0})
+                          </option>
+                        ))}
+                        {etapasDisponibles && (cuentaEtapas.get("sin-etapa") ?? 0) > 0 && (
+                          <option value="sin-etapa">Sin etapa ({cuentaEtapas.get("sin-etapa")})</option>
+                        )}
+                      </select>
+                    </span>
+                  </label>
+
+                  {hayFiltro ? (
+                    <button
+                      type="button"
+                      onClick={limpiarFiltros}
+                      className="mt-2.5 w-full rounded-lg px-2.5 py-2 text-[0.68rem] font-semibold text-coral-700 transition hover:bg-coral-50"
+                    >
+                      Limpiar filtros y búsqueda
+                    </button>
+                  ) : null}
+                </div>
+              </details>
             </div>
-
-            <label className="mt-1.5 flex items-center gap-2 rounded-xl bg-mist/60 px-2.5 py-1.5">
-              <Icono nombre="embudo" className="size-3.5 shrink-0 text-coral" />
-              <span className="sr-only">Filtrar por etapa del pipeline</span>
-              <select
-                value={filtroEtapa}
-                onChange={(e) => elegirEtapa(e.target.value as FiltroEtapa)}
-                disabled={!etapasDisponibles}
-                className="h-7 min-w-0 flex-1 bg-transparent text-[0.7rem] font-semibold text-deep outline-none disabled:cursor-not-allowed disabled:text-slate-400"
-              >
-                <option value="todas">
-                  {etapasDisponibles ? "Todas las etapas" : "Etapas no disponibles"}
-                </option>
-                {etapasDisponibles && ETAPAS.map((etapa) => (
-                  <option key={etapa.clave} value={etapa.clave}>
-                    {etapa.nombre} ({cuentaEtapas.get(etapa.clave) ?? 0})
-                  </option>
-                ))}
-                {etapasDisponibles && (cuentaEtapas.get("sin-etapa") ?? 0) > 0 && (
-                  <option value="sin-etapa">Sin etapa ({cuentaEtapas.get("sin-etapa")})</option>
-                )}
-              </select>
-            </label>
           </div>
 
           <div className="min-h-0 flex-1 overflow-y-auto px-2 py-2">
@@ -530,9 +649,32 @@ export function Bandeja({
         </aside>
 
         {/* ---------- columna derecha: la conversación ---------- */}
-        <section className={`h-full min-h-0 bg-mist/60 p-2 sm:p-3 ${abierta === null ? "hidden lg:block" : "block"}`}>
+        <section className={`relative h-full min-h-0 min-w-0 bg-mist/60 p-2 sm:p-3 ${abierta === null ? "hidden lg:block" : "block"}`}>
           {conversacion === null ? (
-            <div className="grid h-full place-items-center rounded-[1.35rem] bg-white shadow-tarjeta">
+            <div className="relative grid h-full place-items-center rounded-[1.35rem] bg-white shadow-tarjeta">
+              {!listaVisible ? (
+                <div className="absolute left-3 top-3 flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setListaVisible(true)}
+                    aria-label="Mostrar lista de chats"
+                    title="Mostrar lista de chats"
+                    className="grid size-9 place-items-center rounded-xl bg-mist text-slate shadow-tarjeta transition hover:text-coral"
+                  >
+                    <Icono nombre="menu" className="size-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPantallaCompleta((actual) => !actual)}
+                    aria-pressed={pantallaCompleta}
+                    aria-label={pantallaCompleta ? "Salir de pantalla completa" : "Ver en pantalla completa"}
+                    title={pantallaCompleta ? "Salir de pantalla completa" : "Pantalla completa"}
+                    className="grid size-9 place-items-center rounded-xl bg-mist text-slate shadow-tarjeta transition hover:text-coral"
+                  >
+                    <IconoPantallaCompleta activa={pantallaCompleta} />
+                  </button>
+                </div>
+              ) : null}
               <div className="max-w-sm px-6 text-center">
                 <span className="mx-auto grid size-16 place-items-center rounded-3xl bg-gradient-to-br from-coral-50 to-teal-50 text-coral shadow-elevada">
                   <Icono nombre="bandeja" className="size-7" />
@@ -545,7 +687,7 @@ export function Bandeja({
             </div>
           ) : (
             <div className="chat-whatsapp flex h-full min-h-0 flex-col overflow-hidden rounded-[1.35rem] shadow-elevada">
-              <header className="wa-panel z-10 flex shrink-0 items-center gap-3 px-4 py-3 shadow-[0_3px_10px_-8px_rgba(11,20,26,0.55)]">
+              <header className="wa-panel z-10 flex shrink-0 items-center gap-2.5 px-3 py-3 shadow-[0_3px_10px_-8px_rgba(11,20,26,0.55)] sm:gap-3 sm:px-4">
                 <button
                   type="button"
                   onClick={() => abrir(null)}
@@ -553,6 +695,17 @@ export function Bandeja({
                   aria-label="Volver a la lista"
                 >
                   <Icono nombre="volver" className="size-4" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setListaVisible((actual) => !actual)}
+                  className="wa-muted -ml-1 hidden size-8 shrink-0 place-items-center rounded-lg transition hover:bg-black/5 lg:grid"
+                  aria-label={listaVisible ? "Ocultar lista de chats" : "Mostrar lista de chats"}
+                  aria-pressed={!listaVisible}
+                  title={listaVisible ? "Ocultar lista de chats" : "Mostrar lista de chats"}
+                >
+                  <Icono nombre={listaVisible ? "volver" : "menu"} className="size-4" />
                 </button>
 
                 <span className="grid size-10 shrink-0 place-items-center rounded-full bg-[#008069] text-[0.7rem] font-bold text-white shadow-[0_2px_6px_rgba(0,128,105,0.22)]">
@@ -581,7 +734,7 @@ export function Bandeja({
                     <select
                       value={conversacion.asignadoA ?? ""}
                       onChange={(e) => e.target.value && asignar(conversacion.id, e.target.value)}
-                      className="wa-input h-8 max-w-44 rounded-lg px-2 text-[0.72rem] font-semibold shadow-[0_1px_3px_rgba(11,20,26,0.12)] focus:outline-none focus:ring-2 focus:ring-[#00a884]/40"
+                      className="wa-input h-8 max-w-28 rounded-lg px-2 text-[0.7rem] font-semibold shadow-[0_1px_3px_rgba(11,20,26,0.12)] focus:outline-none focus:ring-2 focus:ring-[#00a884]/40 sm:max-w-44 sm:text-[0.72rem]"
                       aria-label="Asignar a"
                     >
                       <option value="" disabled>Sin asesor disponible</option>
@@ -590,6 +743,16 @@ export function Bandeja({
                       ))}
                     </select>
                   )}
+                  <button
+                    type="button"
+                    onClick={() => setPantallaCompleta((actual) => !actual)}
+                    aria-pressed={pantallaCompleta}
+                    aria-label={pantallaCompleta ? "Salir de pantalla completa" : "Ver en pantalla completa"}
+                    title={pantallaCompleta ? "Salir de pantalla completa" : "Pantalla completa"}
+                    className="wa-muted grid size-8 shrink-0 place-items-center rounded-lg transition hover:bg-black/5"
+                  >
+                    <IconoPantallaCompleta activa={pantallaCompleta} />
+                  </button>
                 </div>
               </header>
 

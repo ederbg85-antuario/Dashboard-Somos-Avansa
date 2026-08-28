@@ -12,6 +12,13 @@
 .meta { background: linear-gradient(125deg, #081f48 0%, #0866ff 70%, #4d93ff 100%); }
 .search { background: linear-gradient(125deg, #12356d 0%, #4285f4 65%, #70a7ff 100%); }
 .instagram { background: linear-gradient(125deg, #35146a 0%, #a12d8f 48%, #ee2a7b 78%, #f4a12c 115%); }
+.google {
+  background:
+    radial-gradient(circle at 88% 10%, rgb(66 133 244 / .15), transparent 19rem),
+    radial-gradient(circle at 68% 120%, rgb(52 168 83 / .12), transparent 22rem),
+    linear-gradient(135deg, #fff 0%, #f8faff 100%);
+  box-shadow: 0 20px 55px -32px rgb(60 64 67 / .42);
+}
 
 .hero::after {
   position: absolute;
@@ -43,6 +50,11 @@
   background: rgb(255 255 255 / .09);
   box-shadow: inset 0 1px 0 rgb(255 255 255 / .08), 0 12px 28px -20px rgb(0 0 0 / .65);
   backdrop-filter: blur(10px);
+}
+
+.cifraGoogle {
+  background: rgb(255 255 255 / .82);
+  box-shadow: inset 0 1px 0 #fff, 0 12px 30px -22px rgb(60 64 67 / .5);
 }
 
 .metrica {
@@ -78,6 +90,19 @@
 
 :global(html[data-theme="dark"]) .metricaDestacada {
   background: linear-gradient(145deg, #172934, #2e2029);
+}
+
+:global(html[data-theme="dark"]) .google {
+  background:
+    radial-gradient(circle at 88% 10%, rgb(66 133 244 / .18), transparent 19rem),
+    radial-gradient(circle at 68% 120%, rgb(52 168 83 / .14), transparent 22rem),
+    linear-gradient(135deg, #10242e 0%, #0d2029 100%);
+  box-shadow: 0 20px 55px -32px rgb(0 0 0 / .9);
+}
+
+:global(html[data-theme="dark"]) .cifraGoogle {
+  background: rgb(255 255 255 / .07);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / .08), 0 12px 30px -22px rgb(0 0 0 / .9);
 }
 
 :global(html[data-theme="dark"]) .estadoFuente {

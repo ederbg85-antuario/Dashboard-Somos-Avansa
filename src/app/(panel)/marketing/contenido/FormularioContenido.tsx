@@ -66,11 +66,11 @@ export function FormularioContenido({ publicacionDisponible }: { publicacionDisp
         }
         const registro = await registrarMediosContenido(contenido.id, medios);
         if (!registro.ok) throw new Error(registro.error);
-      } catch (error) {
+      } catch {
         setGuardando(false);
         setEstado({
           malo: true,
-          texto: `La pieza quedó guardada, pero un archivo no se registró: ${error instanceof Error ? error.message : "intenta subirlo de nuevo"}`,
+          texto: "La pieza quedó guardada, pero un archivo no se registró. Intenta subirlo de nuevo.",
         });
         return;
       }
@@ -150,8 +150,8 @@ export function FormularioContenido({ publicacionDisponible }: { publicacionDisp
             disabled={!publicacionDisponible}
             etiqueta="Autorizar envío automático"
             descripcion={publicacionDisponible
-              ? "Aprobación explícita: primero se validan token y activos; después la cola la enviará a partir de la fecha elegida."
-              : "Disponible cuando estén configurados el token técnico y los activos oficiales de Meta."}
+              ? "Aprobación explícita: primero se validan la cuenta y los permisos; después la cola la enviará a partir de la fecha elegida."
+              : "Disponible cuando la cuenta oficial tenga todos los permisos de publicación."}
           />
         </div>
       )}

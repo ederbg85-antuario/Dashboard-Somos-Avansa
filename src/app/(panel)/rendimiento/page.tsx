@@ -135,7 +135,7 @@ export default async function RendimientoAsesores({
             </h1>
             <p className="mt-1.5 max-w-xl text-[0.8rem] leading-relaxed text-white/65">
               {esAdmin
-                ? "Compara carga, cierres y valor producido con fuentes verificables del CRM y Chatwoot."
+                ? "Compara carga, cierres y valor producido con fuentes verificables del CRM y la bandeja oficial."
                 : "Consulta tus leads, cierres y carga actual. Esta vista no recibe información de otros asesores."}
             </p>
           </div>
@@ -211,7 +211,7 @@ export default async function RendimientoAsesores({
                   <span className="grid size-7 place-items-center rounded-lg bg-teal-50">
                     <Icono nombre="whatsapp" className="size-3.5" />
                   </span>
-                  Fuente oficial Chatwoot
+                  Fuente oficial de mensajería
                 </p>
                 <h2 id="operacion-whatsapp" className="mt-2 text-[1.05rem] font-semibold tracking-tight text-ink">
                   Operación de la bandeja de WhatsApp
@@ -257,7 +257,7 @@ export default async function RendimientoAsesores({
             <Tarjeta className="!ring-0 shadow-elevada">
               <CabezaTarjeta
                 titulo="Flujo oficial de conversaciones"
-                apoyo="Conversaciones creadas y resoluciones registradas por Chatwoot en la bandeja configurada."
+                apoyo="Conversaciones creadas y resoluciones registradas en la bandeja configurada."
               />
               <div className="mt-4">
                 {hayActividadChatwoot && serieConversacionesChatwoot.length > 0 ? (
@@ -268,7 +268,7 @@ export default async function RendimientoAsesores({
                     comparativo={{ serie: serieResolucionesChatwoot, color: "#195063", nombre: "Resoluciones" }}
                   />
                 ) : (
-                  <Vacio icono="conversacion" titulo="Sin actividad oficial en el periodo" texto="Chatwoot aún no registra conversaciones ni resoluciones para este intervalo." />
+                  <Vacio icono="conversacion" titulo="Sin actividad oficial en el periodo" texto="La bandeja aún no registra conversaciones ni resoluciones para este intervalo." />
                 )}
               </div>
               <div className="mt-2 flex flex-wrap justify-center gap-4 text-[0.7rem] text-slate">
@@ -295,20 +295,20 @@ export default async function RendimientoAsesores({
                 />
               </div>
               <p className="mt-3 text-[0.67rem] leading-relaxed text-slate-400">
-                Si una respuesta se envía directamente en Chatwoot, no se asigna a ningún asesor del CRM.
+                Si una respuesta se envía fuera de Avansa, no se asigna a ningún asesor del CRM.
               </p>
             </Tarjeta>
           </div>
 
           <Tarjeta className="!ring-0 shadow-elevada">
             <CabezaTarjeta
-              titulo="Identidades técnicas de Chatwoot"
-              apoyo="Reporte agrupado por agente para toda la cuenta. Estas identidades no equivalen a René, Daniela o Carlos."
+              titulo="Actividad por usuario del canal"
+              apoyo="Resumen operativo de toda la cuenta. Estos usuarios no equivalen necesariamente a los asesores de Avansa."
             />
             {reporteChatwoot.identidades.length > 0 ? (
               <Tabla className="mt-4">
                 <Encabezados>
-                  <Th>Identidad Chatwoot</Th>
+                  <Th>Usuario del canal</Th>
                   <Th numerica>Conversaciones</Th>
                   <Th numerica>Resueltas</Th>
                   <Th numerica>1ª respuesta</Th>
@@ -320,7 +320,7 @@ export default async function RendimientoAsesores({
                     <Fila key={identidad.id}>
                       <Td>
                         <p className="font-semibold text-ink">{identidad.nombre}</p>
-                        <p className="text-[0.67rem] text-slate-400">{identidad.email ?? `ID ${identidad.id}`}</p>
+                        <p className="text-[0.67rem] text-slate-400">{identidad.email ?? "Usuario sin correo visible"}</p>
                       </Td>
                       <Td numerica>{numero(identidad.conversaciones)}</Td>
                       <Td numerica>{numero(identidad.resoluciones)}</Td>
@@ -333,7 +333,7 @@ export default async function RendimientoAsesores({
               </Tabla>
             ) : (
               <div className="mt-4">
-                <Vacio icono="usuarios" titulo="Sin identidades reportables" texto="Chatwoot no devolvió actividad agrupada por agente en este periodo." />
+                <Vacio icono="usuarios" titulo="Sin usuarios reportables" texto="La bandeja no devolvió actividad agrupada por usuario en este periodo." />
               </div>
             )}
           </Tarjeta>
@@ -416,7 +416,7 @@ export default async function RendimientoAsesores({
         <Tarjeta className="!ring-0 shadow-elevada">
           <CabezaTarjeta
             titulo="Carga en WhatsApp"
-            apoyo="Chats abiertos o pendientes, consultados directamente desde Chatwoot."
+            apoyo="Chats abiertos o pendientes, consultados directamente desde la bandeja oficial."
             accion={totalCargaActiva !== null ? (
               <span className="cifra rounded-xl bg-teal-50 px-2.5 py-1 text-[0.74rem] font-semibold text-teal-700">
                 {numero(totalCargaActiva)} activos

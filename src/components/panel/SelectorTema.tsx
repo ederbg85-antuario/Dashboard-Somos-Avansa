@@ -2,37 +2,36 @@
 
 import { useEffect, useSyncExternalStore } from "react";
 
-type PreferenciaTema = "system" | "light" | "dark";
+type Tema = "light" | "dark";
 
 const CLAVE_TEMA = "avansa:tema";
 const EVENTO_TEMA = "avansa:cambio-tema";
+let temaEnSesion: Tema | null = null;
 
-function esPreferenciaTema(valor: string | null): valor is PreferenciaTema {
-  return valor === "system" || valor === "light" || valor === "dark";
+function esTema(valor: string | null): valor is Tema {
+  return valor === "light" || valor === "dark";
 }
 
-function aplicarTema(preferencia: PreferenciaTema) {
-  const oscuro =
-    preferencia === "dark"
-    || (preferencia === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
-
-  document.documentElement.dataset.theme = oscuro ? "dark" : "light";
-  document.documentElement.style.colorScheme = oscuro ? "dark" : "light";
+function aplicarTema(tema: Tema) {
+  document.documentElement.dataset.theme = tema;
+  document.documentElement.style.colorScheme = tema;
 
   const colorTema = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
-  colorTema?.setAttribute("content", oscuro ? "#081820" : "#0F2D3D");
+  colorTema?.setAttribute("content", tema === "dark" ? "#081820" : "#0F2D3D");
 }
 
-function leerPreferencia(): PreferenciaTema {
+function leerTema(): Tema {
+  if (temaEnSesion) return temaEnSesion;
   try {
     const guardada = window.localStorage.getItem(CLAVE_TEMA);
-    return esPreferenciaTema(guardada) ? guardada : "system";
+    if (esTema(guardada)) return guardada;
   } catch {
-    return "system";
+    // La preferencia sigue funcionando durante esta sesión.
   }
+  return "light";
 }
 
-function suscribirPreferencia(notificar: () => void) {
+function suscribirTema(notificar: () => void) {
   const cambioLocal = () => notificar();
   const cambioExterno = (evento: StorageEvent) => {
     if (evento.key === CLAVE_TEMA) notificar();
@@ -47,40 +46,43 @@ function suscribirPreferencia(notificar: () => void) {
 }
 
 /**
- * Preferencia visual local del usuario. «Sistema» sigue al sistema operativo;
- * claro y oscuro quedan persistidos en este navegador.
+ * Alterna el tema visual. Claro es el valor inicial y la elección queda
+ * persistida únicamente en este navegador cuando el almacenamiento lo permite.
  */
 export function SelectorTema() {
-  const preferencia = useSyncExternalStore<PreferenciaTema>(
-    suscribirPreferencia,
-    leerPreferencia,
-    () => "system",
+  const tema = useSyncExternalStore<Tema>(
+    suscribirTema,
+    leerTema,
+    () => "light",
   );
 
   useEffect(() => {
-    aplicarTema(preferencia);
-    if (preferencia !== "system") return;
+    aplicarTema(tema);
+  }, [tema]);
 
-    const sistema = window.matchMedia("(prefers-color-scheme: dark)");
-    const seguirSistema = () => aplicarTema("system");
-
-    sistema.addEventListener("change", seguirSistema);
-    return () => sistema.removeEventListener("change", seguirSistema);
-  }, [preferencia]);
-
-  const cambiar = (siguiente: PreferenciaTema) => {
+  const cambiar = () => {
+    const siguiente: Tema = tema === "dark" ? "light" : "dark";
     try {
       window.localStorage.setItem(CLAVE_TEMA, siguiente);
+      temaEnSesion = null;
     } catch {
-      // El tema todavía puede aplicarse durante esta sesión si el navegador
-      // bloquea el almacenamiento local.
+      // El tema todavía se conserva durante esta sesión.
+      temaEnSesion = siguiente;
     }
     aplicarTema(siguiente);
     window.dispatchEvent(new Event(EVENTO_TEMA));
   };
 
+  const accion = tema === "dark" ? "Cambiar a tema claro" : "Cambiar a tema oscuro";
+
   return (
-    <label className="flex min-w-0 items-center gap-2 rounded-xl bg-white/[0.06] px-2.5 py-2 text-white/55 shadow-[inset_0_1px_0_rgb(255_255_255/.04)]">
+    <button
+      type="button"
+      onClick={cambiar}
+      className="selector-tema flex min-h-10 w-full min-w-0 items-center gap-2 rounded-xl bg-white/[0.06] px-2.5 py-2 text-left text-white/55 shadow-[inset_0_1px_0_rgb(255_255_255/.04)] transition hover:bg-white/[0.1] hover:text-white"
+      aria-label={accion}
+      title={accion}
+    >
       <svg
         viewBox="0 0 24 24"
         fill="none"
@@ -91,31 +93,18 @@ export function SelectorTema() {
         className="size-4 shrink-0"
         aria-hidden="true"
       >
-        <path d="M20.2 15.3A8.4 8.4 0 0 1 8.7 3.8 8.5 8.5 0 1 0 20.2 15.3Z" />
+        {tema === "dark" ? (
+          <>
+            <circle cx="12" cy="12" r="3.5" />
+            <path d="M12 2.5V5M12 19v2.5M21.5 12H19M5 12H2.5M18.7 5.3l-1.8 1.8M7.1 16.9l-1.8 1.8M18.7 18.7l-1.8-1.8M7.1 7.1 5.3 5.3" />
+          </>
+        ) : (
+          <path d="M20.2 15.3A8.4 8.4 0 0 1 8.7 3.8 8.5 8.5 0 1 0 20.2 15.3Z" />
+        )}
       </svg>
-      <span className="sr-only">Tema visual</span>
-      <select
-        value={preferencia}
-        onChange={(evento) => cambiar(evento.target.value as PreferenciaTema)}
-        aria-label="Tema visual"
-        className="min-w-0 flex-1 cursor-pointer appearance-none bg-transparent text-[0.69rem] font-semibold text-white/75 outline-none"
-      >
-        <option value="system">Tema del sistema</option>
-        <option value="light">Tema claro</option>
-        <option value="dark">Tema oscuro</option>
-      </select>
-      <svg
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className="size-3.5 shrink-0"
-        aria-hidden="true"
-      >
-        <path d="m7 9 5 5 5-5" />
-      </svg>
-    </label>
+      <span className="selector-tema__etiqueta min-w-0 flex-1 text-[0.69rem] font-semibold text-white/75">
+        {tema === "dark" ? "Tema claro" : "Tema oscuro"}
+      </span>
+    </button>
   );
 }

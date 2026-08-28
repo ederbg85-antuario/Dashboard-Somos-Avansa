@@ -12,6 +12,7 @@ import {
 } from "@/lib/meta/publicador";
 import { haceDias, iso } from "@/lib/formato";
 import type { CampanaEstado, EstadoContenidoSocial, TipoContenidoSocial } from "@/lib/supabase/tipos";
+import { fechaLocalMexicoAIso } from "./_lib/fecha-mexico";
 
 export type Resultado = { ok: true; aviso?: string } | { ok: false; error: string };
 
@@ -25,9 +26,11 @@ const decimal = (fd: FormData, campo: string) => Math.max(0, Number(fd.get(campo
 function refrescar() {
   revalidatePath("/marketing");
   revalidatePath("/marketing/meta");
+  revalidatePath("/marketing/sitio-web");
   revalidatePath("/marketing/search-console");
   revalidatePath("/marketing/instagram");
   revalidatePath("/marketing/contenido");
+  revalidatePath("/funnel");
   revalidatePath("/");
 }
 
@@ -40,14 +43,29 @@ export async function guardarCampana(datos: FormData): Promise<Resultado> {
   const nombre = texto(datos, "nombre", 160);
   if (!nombre) return { ok: false, error: "La campaña necesita nombre." };
 
+  const estadoSolicitado = texto(datos, "estado") ?? "borrador";
+  const estadosSeguros = new Set<CampanaEstado>(["borrador", "pausada"]);
+  if (!estadosSeguros.has(estadoSolicitado as CampanaEstado)) {
+    return { ok: false, error: "Sólo puedes guardar campañas en borrador o pausadas." };
+  }
+
+  const fechaInicio = texto(datos, "fecha_inicio", 10);
+  const fechaFin = texto(datos, "fecha_fin", 10);
+  if (Boolean(fechaInicio) !== Boolean(fechaFin)) {
+    return { ok: false, error: "Define inicio y término juntos, o deja ambas fechas pendientes." };
+  }
+  if (fechaInicio && fechaFin && fechaFin < fechaInicio) {
+    return { ok: false, error: "La fecha de término no puede ser anterior al inicio." };
+  }
+
   const fila = {
     nombre,
     objetivo: texto(datos, "objetivo", 80),
-    estado: (texto(datos, "estado") ?? "activa") as CampanaEstado,
+    estado: estadoSolicitado as CampanaEstado,
     publico: texto(datos, "publico", 200),
     meta_campaign_id: texto(datos, "meta_campaign_id", 60),
-    fecha_inicio: texto(datos, "fecha_inicio", 10),
-    fecha_fin: texto(datos, "fecha_fin", 10),
+    fecha_inicio: fechaInicio,
+    fecha_fin: fechaFin,
     presupuesto_diario: decimal(datos, "presupuesto_diario") || null,
     notas: texto(datos, "notas", 1000),
   };
@@ -58,16 +76,18 @@ export async function guardarCampana(datos: FormData): Promise<Resultado> {
     : await supabase.from("campanas").insert(fila);
 
   if (error) {
+    console.error("[avansa] No se pudo guardar la campaña:", error.code);
     return {
       ok: false,
       error: error.code === "23505"
         ? "Ya existe una campaña con ese identificador de Meta."
-        : error.message,
+        : "No se pudo guardar la campaña. Intenta de nuevo.",
     };
   }
 
   refrescar();
-  return { ok: true, aviso: id ? "Campaña actualizada." : `Campaña «${nombre}» creada.` };
+  const estadoVisible = estadoSolicitado === "pausada" ? "pausada" : "borrador";
+  return { ok: true, aviso: id ? "Registro de campaña actualizado." : `Campaña «${nombre}» guardada como ${estadoVisible} en Avansa.` };
 }
 
 // ---------- métrica diaria ------------------------------------------------
@@ -101,7 +121,10 @@ export async function guardarMetrica(datos: FormData): Promise<Resultado> {
     { onConflict: "campana_id,fecha" },
   );
 
-  if (error) return { ok: false, error: error.message };
+  if (error) {
+    console.error("[avansa] No se pudo guardar la métrica:", error.code);
+    return { ok: false, error: "No se pudo guardar la medición. Intenta de nuevo." };
+  }
   refrescar();
   return { ok: true, aviso: `Métrica del ${fecha} guardada.` };
 }
@@ -121,7 +144,7 @@ export async function sincronizarConMeta(dias = 30): Promise<Resultado> {
   if (!metaConfigurado()) {
     return {
       ok: false,
-      error: "Falta configurar META_ACCESS_TOKEN y META_AD_ACCOUNT_ID en el entorno.",
+      error: "La conexión de lectura publicitaria todavía no está completa.",
     };
   }
 
@@ -129,8 +152,8 @@ export async function sincronizarConMeta(dias = 30): Promise<Resultado> {
   let filas;
   try {
     filas = await traerInsights(haceDias(dias), iso());
-  } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : "Meta no respondió." };
+  } catch {
+    return { ok: false, error: "No se pudieron actualizar los datos publicitarios ahora." };
   }
 
   if (filas.length === 0) return { ok: true, aviso: "Meta no devolvió datos en el rango." };
@@ -148,9 +171,19 @@ export async function sincronizarConMeta(dias = 30): Promise<Resultado> {
   if (nuevas.length > 0) {
     const { data: creadas, error } = await supabase
       .from("campanas")
-      .insert(nuevas.map(([meta_campaign_id, nombre]) => ({ nombre, meta_campaign_id, plataforma: "meta" })))
+      .insert(nuevas.map(([meta_campaign_id, nombre]) => ({
+        nombre,
+        meta_campaign_id,
+        plataforma: "meta",
+        // La lectura de resultados no confirma el estado de entrega. Nunca
+        // se interpreta la existencia de métricas como autorización de gasto.
+        estado: "borrador" as const,
+      })))
       .select("id, meta_campaign_id");
-    if (error) return { ok: false, error: `No se pudieron crear las campañas nuevas: ${error.message}` };
+    if (error) {
+      console.error("[avansa] No se pudieron registrar campañas leídas:", error.code);
+      return { ok: false, error: "No se pudieron registrar las campañas nuevas." };
+    }
     for (const c of creadas ?? []) conocidas.set(c.meta_campaign_id!, c.id);
   }
 
@@ -169,12 +202,15 @@ export async function sincronizarConMeta(dias = 30): Promise<Resultado> {
     { onConflict: "campana_id,fecha" },
   );
 
-  if (error) return { ok: false, error: error.message };
+  if (error) {
+    console.error("[avansa] No se pudieron guardar las métricas leídas:", error.code);
+    return { ok: false, error: "No se pudieron guardar los datos publicitarios." };
+  }
 
   refrescar();
   return {
     ok: true,
-    aviso: `${filas.length} días sincronizados${nuevas.length ? ` y ${nuevas.length} campañas nuevas` : ""}.`,
+    aviso: `${filas.length} días actualizados${nuevas.length ? ` y ${nuevas.length} campañas agregadas al panel` : ""}.`,
   };
 }
 
@@ -216,9 +252,14 @@ export async function guardarContenido(datos: FormData): Promise<ResultadoConten
   }
 
   const fechaLocal = texto(datos, "programado_para", 40);
-  const programado_para = fechaLocal ? new Date(fechaLocal).toISOString() : null;
+  const fechaConvertida = fechaLocal ? fechaLocalMexicoAIso(fechaLocal) : null;
+  if (fechaConvertida && !fechaConvertida.ok) return fechaConvertida;
+  const programado_para = fechaConvertida?.iso ?? null;
   if (estado === "programado" && !programado_para) {
     return { ok: false, error: "Indica fecha y hora para programar la pieza." };
+  }
+  if (fechaConvertida && fechaConvertida.instante <= Date.now()) {
+    return { ok: false, error: "Elige una fecha y hora futura en Ciudad de México." };
   }
 
   const { data, error } = await supabase.from("contenidos_sociales").insert({
@@ -232,7 +273,10 @@ export async function guardarContenido(datos: FormData): Promise<ResultadoConten
     actualizado_por: usuarioId,
   }).select("id").single();
 
-  if (error || !data) return { ok: false, error: error?.message ?? "No se pudo crear la pieza." };
+  if (error || !data) {
+    if (error) console.error("[avansa] No se pudo crear la pieza:", error.code);
+    return { ok: false, error: "No se pudo crear la pieza. Intenta de nuevo." };
+  }
   refrescar();
   return {
     ok: true,
@@ -267,7 +311,10 @@ export async function registrarMediosContenido(contenidoId: string, medios: Medi
       orden: medio.orden,
     })),
   );
-  if (error) return { ok: false, error: error.message };
+  if (error) {
+    console.error("[avansa] No se pudo registrar el archivo:", error.code);
+    return { ok: false, error: "No se pudo agregar el archivo. Intenta de nuevo." };
+  }
   refrescar();
   return { ok: true, aviso: "Archivo agregado al contenido." };
 }
@@ -293,14 +340,20 @@ export async function autorizarContenido(contenidoId: string): Promise<Resultado
     .select("*")
     .eq("id", contenidoId)
     .single();
-  if (contenidoError || !contenido) return { ok: false, error: contenidoError?.message ?? "No se encontro la pieza." };
+  if (contenidoError || !contenido) {
+    if (contenidoError) console.error("[avansa] No se pudo leer la pieza:", contenidoError.code);
+    return { ok: false, error: "No se encontró la pieza o no está disponible." };
+  }
 
   const { data: medios, error: mediosError } = await supabase
     .from("contenido_medios")
     .select("*")
     .eq("contenido_id", contenidoId)
     .order("orden");
-  if (mediosError) return { ok: false, error: mediosError.message };
+  if (mediosError) {
+    console.error("[avansa] No se pudieron leer los archivos:", mediosError.code);
+    return { ok: false, error: "No se pudieron revisar los archivos de la pieza." };
+  }
   if (contenido.autorizado_en) return { ok: true, aviso: "La pieza ya estaba autorizada." };
   if (contenido.estado !== "programado" || !contenido.programado_para) {
     return { ok: false, error: "Primero programa una fecha y hora." };
@@ -309,11 +362,11 @@ export async function autorizarContenido(contenidoId: string): Promise<Resultado
   const plataformas = contenido.plataformas as ("facebook" | "instagram")[];
   const conexion = estadoConfiguracionPublicacion(plataformas);
   if (!conexion.lista) {
-    return { ok: false, error: `La conexion de publicacion aun no esta completa: ${conexion.faltantes.join(", ")}.` };
+    return { ok: false, error: "La conexión de publicación aún no está completa." };
   }
   const activos = await verificarActivosPublicacion(plataformas);
   if (!activos.ok) {
-    return { ok: false, error: `Meta no pudo validar el token o los activos: ${activos.error}` };
+    return { ok: false, error: "La cuenta todavía no tiene todos los permisos de publicación." };
   }
 
   const resultadoAnterior = leerResultadoMeta(contenido.resultado_meta);
@@ -347,7 +400,10 @@ export async function autorizarContenido(contenidoId: string): Promise<Resultado
     .select("id")
     .maybeSingle();
 
-  if (error) return { ok: false, error: error.message };
+  if (error) {
+    console.error("[avansa] No se pudo autorizar la pieza:", error.code);
+    return { ok: false, error: "No se pudo autorizar la pieza. Intenta de nuevo." };
+  }
   if (!autorizada) return { ok: false, error: "La pieza cambio mientras se autorizaba; recarga el calendario." };
   refrescar();
   return { ok: true, aviso: "Pieza autorizada. Se enviara a partir de la fecha programada." };

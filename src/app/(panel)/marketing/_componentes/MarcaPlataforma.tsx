@@ -1,11 +1,14 @@
-type Plataforma = "avansa" | "meta" | "search" | "instagram" | "analytics" | "calendario";
+import Image from "next/image";
+
+export type Plataforma = "avansa" | "meta" | "search" | "instagram" | "analytics" | "sitio" | "calendario";
 
 const ETIQUETAS: Record<Plataforma, string> = {
   avansa: "Avansa Marketing",
-  meta: "Meta Ads",
-  search: "Google Search Console",
+  meta: "Publicidad en Meta",
+  search: "SEO en Google",
   instagram: "Instagram",
-  analytics: "Google Analytics",
+  analytics: "Sitio web",
+  sitio: "Sitio web",
   calendario: "Calendario editorial",
 };
 
@@ -55,16 +58,16 @@ export function MarcaPlataforma({
 
   if (plataforma === "search") {
     return (
-      <svg {...comun} fill="none">
-        <path d="M5 7.5A3.5 3.5 0 0 1 8.5 4h15A3.5 3.5 0 0 1 27 7.5v15a3.5 3.5 0 0 1-3.5 3.5h-15A3.5 3.5 0 0 1 5 22.5v-15Z" fill="#4285F4" />
-        <path d="M5 10h22v12.5a3.5 3.5 0 0 1-3.5 3.5h-15A3.5 3.5 0 0 1 5 22.5V10Z" fill="#5F9AF3" />
-        <path d="M10 21v-4m5 4v-7m5 7v-10" stroke="white" strokeWidth="2.2" strokeLinecap="round" />
-        <path d="M9 8h2m3 0h9" stroke="white" strokeWidth="1.8" strokeLinecap="round" opacity=".92" />
+      <svg className={className} viewBox="0 0 48 48" role="img" aria-label={ETIQUETAS[plataforma]}>
+        <path fill="#FFC107" d="M43.6 20H42V20H24v8h11.3A12 12 0 0 1 12.7 32l-6.6 5.1A20 20 0 0 0 44 24c0-1.3-.1-2.7-.4-4Z" />
+        <path fill="#FF3D00" d="m6.1 10.9 6.6 4.8A12 12 0 0 1 31.6 12l5.8-5.8A20 20 0 0 0 6.1 10.9Z" />
+        <path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.1L31.2 33a11.9 11.9 0 0 1-18.5-5l-6.5 5A20 20 0 0 0 24 44Z" />
+        <path fill="#1976D2" d="M43.6 20H42V20H24v8h11.3a12 12 0 0 1-4.1 5l6.2 5.9C41.2 35.4 44 30.3 44 24c0-1.3-.1-2.7-.4-4Z" />
       </svg>
     );
   }
 
-  if (plataforma === "analytics") {
+  if (plataforma === "analytics" || plataforma === "sitio") {
     return (
       <svg {...comun} fill="none">
         <rect x="18" y="4" width="8" height="24" rx="4" fill="#F9AB00" />
@@ -84,11 +87,5 @@ export function MarcaPlataforma({
     );
   }
 
-  return (
-    <svg {...comun} fill="none">
-      <path d="M6 8.5c2.6-3.8 7.5-5.7 11.8-3.5 4.2 2.2 5.8 7.3 3.6 11.5-2.1 4.1-7.2 5.9-11.4 3.8" stroke="#FF4D6D" strokeWidth="4" strokeLinecap="round" />
-      <path d="M9 18c-3.4 1.3-5 4.2-3.8 6.8 1.4 3 5.5 3.7 9.1 1.6 3.7-2.1 5.5-6.3 4.1-9.3" stroke="#2FB6A3" strokeWidth="4" strokeLinecap="round" />
-    </svg>
-  );
+  return <Image src="/marca/isotipo/avansa-isotipo.svg" width={32} height={32} className={className} alt={ETIQUETAS.avansa} />;
 }
-

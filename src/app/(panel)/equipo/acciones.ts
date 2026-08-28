@@ -64,14 +64,17 @@ export async function invitar(datos: FormData): Promise<Resultado> {
     { onConflict: "email" },
   );
 
-  if (error) return { ok: false, error: error.message };
+  if (error) {
+    console.error("[avansa] No se pudo preparar la invitación", { codigo: error.code });
+    return { ok: false, error: "No se pudo preparar la invitación. Intenta de nuevo." };
+  }
 
   const servicio = clienteServicio();
   if (!servicio) {
     revalidatePath("/equipo");
     return {
       ok: true,
-      aviso: `${email} quedó preparado, pero falta SUPABASE_SERVICE_ROLE_KEY para enviar el correo.`,
+      aviso: `${email} quedó preparado, pero el envío automático de invitaciones no está disponible.`,
     };
   }
 
@@ -81,7 +84,10 @@ export async function invitar(datos: FormData): Promise<Resultado> {
     redirectTo: base ? `${base}/auth/confirm?next=/bienvenida` : undefined,
   });
 
-  if (errorCorreo) return { ok: false, error: errorCorreo.message };
+  if (errorCorreo) {
+    console.error("[avansa] No se pudo enviar la invitación", { codigo: errorCorreo.code });
+    return { ok: false, error: "La invitación quedó preparada, pero no se pudo enviar el correo ahora." };
+  }
 
   revalidatePath("/equipo");
   return {

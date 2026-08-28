@@ -100,14 +100,14 @@ export default async function ResumenMarketing({
         <MetricaPlataforma
           rotulo="Usuarios web"
           valor={google.analitica ? numero(google.analitica.usuarios) : "—"}
-          apoyo={google.analitica ? `${numero(google.analitica.sesiones)} sesiones · GA4` : "GA4 sin datos"}
+          apoyo={google.analitica ? `${numero(google.analitica.sesiones)} visitas al sitio` : "Sitio web sin datos"}
           icono="usuarios"
           color="#F9AB00"
         />
         <MetricaPlataforma
           rotulo="Clics orgánicos"
           valor={google.busqueda ? numero(google.busqueda.clics) : "—"}
-          apoyo={google.busqueda ? `${numero(google.busqueda.impresiones)} impresiones` : "Search Console sin datos"}
+          apoyo={google.busqueda ? `${numero(google.busqueda.impresiones)} impresiones` : "SEO sin datos"}
           icono="buscar"
           color="#4285F4"
         />
@@ -118,7 +118,7 @@ export default async function ResumenMarketing({
           <CabezaTarjeta
             titulo="Pulso de adquisición"
             apoyo="Inversión diaria y solicitudes registradas."
-            accion={<BotonEnlace href={`/marketing/meta?periodo=${rango.clave}`} tono="fantasma" tamano="sm">Abrir Meta Ads</BotonEnlace>}
+            accion={<BotonEnlace href={`/marketing/meta?periodo=${rango.clave}`} tono="fantasma" tamano="sm">Abrir publicidad</BotonEnlace>}
           />
           <div className={`${estilos.grafica} mt-5`}><Linea serie={series.gasto} color="#0866FF" formato="dinero" alto={230} /></div>
           <div className="mt-4 rounded-2xl bg-mist p-4">
@@ -128,17 +128,23 @@ export default async function ResumenMarketing({
         </Tarjeta>
 
         <Tarjeta>
-          <CabezaTarjeta titulo="Canales de sesión" apoyo="Distribución de GA4." />
+          <CabezaTarjeta titulo="Cómo llegan al sitio" apoyo="Distribución de las visitas medidas." />
           <div className="mt-5">
             {canales.length > 0 ? (
               <BarrasHorizontales datos={canales} formato="numero" maximoFilas={5} />
             ) : (
               <EstadoFuente
-                plataforma="analytics"
-                titulo="Analytics todavía no respondió"
-                texto={google.errorAnalitica ?? "Conecta Google para ver los canales."}
-                estado={google.errorAnalitica ? "error" : "pendiente"}
-                accion={google.configurado && !google.conectado ? <BotonEnlace href="/api/integraciones/google/conectar" tono="coral" tamano="sm">Conectar Google</BotonEnlace> : undefined}
+                plataforma="sitio"
+                titulo={google.analitica ? "Sin fuentes en el periodo" : "El sitio todavía no tiene datos"}
+                texto={google.analitica
+                  ? google.analitica.canalesDisponibles
+                    ? "No hubo visitas clasificadas en el periodo."
+                    : "No pudimos leer el detalle de fuentes ahora."
+                  : google.errorAnalitica
+                    ? "No pudimos leer la medición ahora."
+                    : "Conecta Google para ver los canales."}
+                estado={google.analitica?.canalesDisponibles ? "conectado" : google.errorAnalitica || google.analitica ? "error" : "pendiente"}
+                accion={google.configuradoAnalitica && !google.conectado ? <BotonEnlace href="/api/integraciones/google/conectar" tono="coral" tamano="sm">Conectar Google</BotonEnlace> : undefined}
               />
             )}
           </div>
@@ -151,18 +157,25 @@ export default async function ResumenMarketing({
         </Tarjeta>
       </div>
 
-      <div className="mt-4 grid gap-4 lg:grid-cols-2 xl:grid-cols-4">
+      <div className="mt-4 grid gap-4 lg:grid-cols-2 xl:grid-cols-5">
         <EstadoFuente
           plataforma="meta"
-          titulo="Meta Ads"
-          texto={metaConfigurado() ? `${numero(total.clics)} clics · ${numero(total.alcance)} de alcance.` : "Falta el token de lectura."}
+          titulo="Publicidad"
+          texto={metaConfigurado() ? `${numero(total.clics)} clics · ${numero(total.alcance)} de alcance.` : "Conexión de lectura pendiente."}
           estado={metaConfigurado() ? "conectado" : "pendiente"}
           accion={<BotonEnlace href={`/marketing/meta?periodo=${rango.clave}`} tono="claro" tamano="sm">Ver campañas</BotonEnlace>}
         />
         <EstadoFuente
+          plataforma="sitio"
+          titulo="Sitio web"
+          texto={google.analitica ? `${numero(google.analitica.sesiones)} visitas · ${numero(google.analitica.eventosClave)} acciones clave.` : "Medición pendiente."}
+          estado={google.analitica ? "conectado" : google.errorAnalitica ? "error" : "pendiente"}
+          accion={<BotonEnlace href={`/marketing/sitio-web?periodo=${rango.clave}`} tono="claro" tamano="sm">Ver sitio</BotonEnlace>}
+        />
+        <EstadoFuente
           plataforma="search"
-          titulo="Search Console"
-          texto={google.busqueda ? `CTR ${porcentaje(google.busqueda.ctr, 2)} · posición ${google.busqueda.posicion?.toFixed(1) ?? "—"}.` : google.errorBusqueda ?? "Sin reporte orgánico."}
+          titulo="SEO"
+          texto={google.busqueda ? `CTR ${porcentaje(google.busqueda.ctr, 2)} · posición ${google.busqueda.posicion?.toFixed(1) ?? "—"}.` : google.errorBusqueda ? "No pudimos leer la búsqueda ahora." : "Sin reporte orgánico."}
           estado={google.busqueda ? "conectado" : google.errorBusqueda ? "error" : "pendiente"}
           accion={<BotonEnlace href={`/marketing/search-console?periodo=${rango.clave}`} tono="claro" tamano="sm">Ver búsqueda</BotonEnlace>}
         />

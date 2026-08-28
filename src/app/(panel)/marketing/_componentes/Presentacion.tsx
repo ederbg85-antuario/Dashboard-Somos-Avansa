@@ -36,8 +36,10 @@ export function HeroPlataforma({
   titulo: ReactNode;
   texto: ReactNode;
   cifras?: { etiqueta: string; valor: ReactNode }[];
-  tono?: "oscuro" | "meta" | "search" | "instagram";
+  tono?: "oscuro" | "meta" | "search" | "instagram" | "google";
 }) {
+  const claro = tono === "google";
+
   return (
     <section className={`${estilos.hero} ${estilos[tono]}`}>
       <div className={estilos.orbe} aria-hidden="true" />
@@ -47,20 +49,20 @@ export function HeroPlataforma({
             <span className="grid size-12 place-items-center rounded-2xl bg-[#fff] shadow-elevada">
               <MarcaPlataforma plataforma={plataforma} className="size-7" />
             </span>
-            <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-white/65">{ceja}</p>
+            <p className={`text-[0.7rem] font-semibold uppercase tracking-[0.16em] ${claro ? "text-slate" : "text-white/65"}`}>{ceja}</p>
           </div>
-          <h2 className="mt-5 max-w-3xl text-[clamp(1.7rem,3.2vw,3rem)] font-semibold leading-[1.02] tracking-[-0.045em] text-white">
+          <h2 className={`mt-5 max-w-3xl text-[clamp(1.7rem,3.2vw,3rem)] font-semibold leading-[1.02] tracking-[-0.045em] ${claro ? "text-ink" : "text-white"}`}>
             {titulo}
           </h2>
-          <p className="mt-3 max-w-2xl text-[0.84rem] leading-relaxed text-white/70">{texto}</p>
+          <p className={`mt-3 max-w-2xl text-[0.84rem] leading-relaxed ${claro ? "text-slate" : "text-white/70"}`}>{texto}</p>
         </div>
 
         {cifras && cifras.length > 0 ? (
           <dl className="grid grid-cols-2 gap-2.5">
             {cifras.map((cifra, indice) => (
-              <div key={cifra.etiqueta} className={`${estilos.cifraHero} ${indice === 0 ? "col-span-2" : ""}`}>
-                <dt className="text-[0.66rem] font-semibold uppercase tracking-[0.11em] text-white/55">{cifra.etiqueta}</dt>
-                <dd className="cifra mt-1.5 text-[clamp(1.35rem,2.5vw,2.2rem)] font-semibold leading-none tracking-tight text-white">{cifra.valor}</dd>
+              <div key={cifra.etiqueta} className={`${estilos.cifraHero} ${claro ? estilos.cifraGoogle : ""} ${indice === 0 ? "col-span-2" : ""}`}>
+                <dt className={`text-[0.66rem] font-semibold uppercase tracking-[0.11em] ${claro ? "text-slate" : "text-white/55"}`}>{cifra.etiqueta}</dt>
+                <dd className={`cifra mt-1.5 text-[clamp(1.35rem,2.5vw,2.2rem)] font-semibold leading-none tracking-tight ${claro ? "text-ink" : "text-white"}`}>{cifra.valor}</dd>
               </div>
             ))}
           </dl>

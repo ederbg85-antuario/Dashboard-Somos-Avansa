@@ -16,9 +16,10 @@ import { exigirRol } from "@/lib/supabase/sesion";
 import { CabeceraMarketing, HeroPlataforma, MetricaPlataforma } from "../_componentes/Presentacion";
 import { atribucionLeads, consolidarCampanas, seriesPauta } from "../_lib/metricas";
 import { BotonSincronizar, CapturaMetrica, NuevaCampana } from "../Formularios";
+import { PlanCampanas } from "./PlanCampanas";
 import estilos from "../marketing.module.css";
 
-export const metadata: Metadata = { title: "Meta Ads · Marketing" };
+export const metadata: Metadata = { title: "Publicidad · Marketing" };
 export const dynamic = "force-dynamic";
 
 export default async function MetaAds({
@@ -46,15 +47,15 @@ export default async function MetaAds({
     etiqueta: campana.nombre,
     valor: campana.gasto,
     color: campana.estado === "activa" ? "#0866FF" : "#6B7785",
-    nota: `${numero(campana.leads)} leads`,
+    nota: `${numero(campana.leads)} solicitudes`,
   }));
   const mejor = filas.find((fila) => fila.leads > 0);
 
   return (
     <>
       <CabeceraMarketing
-        titulo="Meta Ads"
-        apoyo="Rendimiento de campañas publicitarias, contrastado con las solicitudes que realmente entraron al CRM."
+        titulo="Publicidad"
+        apoyo="Rendimiento de campañas en Meta, contrastado con las solicitudes que realmente entraron a Avansa."
         acciones={<><SelectorPeriodo actual={rango.clave} /><NuevaCampana /></>}
       />
 
@@ -64,8 +65,8 @@ export default async function MetaAds({
         ceja={`${rango.etiqueta} · cuenta publicitaria Avansa`}
         titulo={<>Pauta visible, del <span className="text-white/70">alcance al expediente.</span></>}
         texto={metaConfigurado()
-          ? "La sincronización técnica está disponible. Meta puede ajustar atribución durante los días posteriores a una conversión."
-          : "La estructura está lista para recibir la Marketing API; mientras se conecta el token técnico, sólo aparecen datos capturados en Avansa."}
+          ? "La conexión de lectura está disponible. Meta puede ajustar la atribución durante los días posteriores a un resultado."
+          : "La conexión de lectura está pendiente; mientras tanto sólo aparecen datos guardados en Avansa."}
         cifras={[
           { etiqueta: "Inversión", valor: dineroCorto(total.gasto) },
           { etiqueta: "Alcance", valor: numero(total.alcance) },
@@ -73,11 +74,13 @@ export default async function MetaAds({
         ]}
       />
 
+      <PlanCampanas campanasRegistradas={listaCampanas.length} />
+
       <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <MetricaPlataforma rotulo="Impresiones" valor={numero(total.impresiones)} apoyo={`${variacion(total.impresiones, anterior.impresiones)?.toFixed(1) ?? "—"} % vs. periodo anterior`} icono="ojo" color="#0866FF" />
         <MetricaPlataforma rotulo="Clics" valor={numero(total.clics)} apoyo={`CTR ${porcentaje(total.ctr, 2)}`} icono="enlace" color="#1877F2" destacado />
-        <MetricaPlataforma rotulo="Leads reportados" valor={numero(total.leads)} apoyo={`CPL de plataforma ${total.cpl === null ? "—" : dineroCorto(total.cpl)}`} icono="usuarios" color="#2FB6A3" />
-        <MetricaPlataforma rotulo="Costo real" valor={cplReal === null ? "—" : dineroCorto(cplReal)} apoyo={`${numero(leads.length)} solicitudes creadas en CRM`} icono="bandeja" color="#FF4D6D" />
+        <MetricaPlataforma rotulo="Resultados reportados" valor={numero(total.leads)} apoyo={`Costo reportado ${total.cpl === null ? "—" : dineroCorto(total.cpl)}`} icono="usuarios" color="#2FB6A3" />
+        <MetricaPlataforma rotulo="Costo real" valor={cplReal === null ? "—" : dineroCorto(cplReal)} apoyo={`${numero(leads.length)} solicitudes creadas en Avansa`} icono="bandeja" color="#FF4D6D" />
       </div>
 
       <div className="mt-4 grid gap-4 xl:grid-cols-2">
@@ -97,7 +100,7 @@ export default async function MetaAds({
           <div className="mt-5"><BarrasHorizontales datos={ranking} formato="dinero" maximoFilas={7} /></div>
         </Tarjeta>
         <Tarjeta>
-          <CabezaTarjeta titulo="Origen de solicitudes" apoyo="Conteo del CRM por campaña u origen, independiente de la atribución de Meta." />
+          <CabezaTarjeta titulo="Origen de solicitudes" apoyo="Conteo de Avansa por campaña u origen, independiente del reporte publicitario." />
           <div className="mt-5"><BarrasHorizontales datos={atribucion} formato="numero" maximoFilas={7} /></div>
         </Tarjeta>
       </div>
@@ -105,7 +108,7 @@ export default async function MetaAds({
       <Tarjeta className="mt-4">
         <CabezaTarjeta titulo="Desempeño por campaña" apoyo={`Consolidado de ${rango.etiqueta.toLowerCase()}.`} />
         {filas.length === 0 ? (
-          <Vacio icono="megafono" titulo="Sin métricas en el periodo" texto="Sincroniza Meta o captura un día para comenzar a comparar campañas." />
+          <Vacio icono="megafono" titulo="Sin datos en el periodo" texto="Actualiza la lectura o captura un día para comenzar a comparar campañas." />
         ) : (
           <Tabla className="mt-3">
             <Encabezados>
@@ -144,13 +147,13 @@ export default async function MetaAds({
 
       <div className="mt-4 grid gap-4 xl:grid-cols-2">
         <Tarjeta>
-          <CabezaTarjeta titulo="Sincronización con Meta" apoyo="Importa impresiones, alcance, clics, gasto y resultados por campaña y día." />
+          <CabezaTarjeta titulo="Lectura de publicidad" apoyo="Importa impresiones, alcance, clics, gasto y resultados por campaña y día." />
           <div className="mt-4">
             <BotonSincronizar configurado={metaConfigurado()} />
             {!metaConfigurado() ? (
               <div className="mt-3 rounded-2xl bg-sand-50 p-4 text-[0.78rem] leading-relaxed text-ink">
-                <p className="flex items-center gap-2 font-semibold"><Icono nombre="alerta" className="size-4" />Falta el token técnico de Meta Ads</p>
-                <p className="mt-1.5">Hasta conectarlo, el panel conserva la captura manual y no presenta cifras externas como si fueran actuales.</p>
+                <p className="flex items-center gap-2 font-semibold"><Icono nombre="alerta" className="size-4" />Conexión de lectura pendiente</p>
+                <p className="mt-1.5">Hasta completarla, el panel conserva la captura manual y no presenta cifras externas como si fueran actuales.</p>
               </div>
             ) : null}
           </div>

@@ -6,7 +6,7 @@ import { Campo, CampoMonto, CampoSelect } from "@/components/ui/Campo";
 import { Boton } from "@/components/ui/Boton";
 import { Icono } from "@/components/ui/Icono";
 import { OBJETIVOS_META } from "@/lib/constantes";
-import { haceDias, iso } from "@/lib/formato";
+import { haceDias } from "@/lib/formato";
 import type { Campana } from "@/lib/supabase/tipos";
 import { guardarCampana, guardarMetrica, sincronizarConMeta, type Resultado } from "./acciones";
 
@@ -50,11 +50,9 @@ export function NuevaCampana() {
         <CampoSelect etiqueta="Objetivo" name="objetivo" defaultValue="Tráfico">
           {OBJETIVOS_META.map((o) => <option key={o} value={o}>{o}</option>)}
         </CampoSelect>
-        <CampoSelect etiqueta="Estado" name="estado" defaultValue="activa">
-          <option value="activa">Activa</option>
-          <option value="pausada">Pausada</option>
+        <CampoSelect etiqueta="Estado" name="estado" defaultValue="borrador">
           <option value="borrador">Borrador</option>
-          <option value="finalizada">Finalizada</option>
+          <option value="pausada">Pausada</option>
         </CampoSelect>
       </div>
 
@@ -62,16 +60,20 @@ export function NuevaCampana() {
              placeholder="Derechohabientes 28-55, CDMX y Estado de México" />
 
       <div className="grid gap-3 sm:grid-cols-3">
-        <Campo etiqueta="Inicio" name="fecha_inicio" type="date" defaultValue={iso()} />
-        <Campo etiqueta="Fin" name="fecha_fin" type="date" />
-        <CampoMonto etiqueta="Presupuesto diario" name="presupuesto_diario" placeholder="0.00" />
+        <Campo etiqueta="Inicio" name="fecha_inicio" type="date" ayuda="deja vacío hasta confirmar" />
+        <Campo etiqueta="Fin" name="fecha_fin" type="date" ayuda="deja vacío hasta confirmar" />
+        <CampoMonto etiqueta="Presupuesto diario" name="presupuesto_diario" placeholder="0.00" ayuda="no activa gasto" />
       </div>
 
-      <Campo etiqueta="ID de campaña en Meta" name="meta_campaign_id"
-             ayuda="opcional, permite sincronizar" placeholder="120210000000001" />
+      <Campo etiqueta="Identificador en Meta" name="meta_campaign_id"
+             ayuda="opcional, sólo para lectura" placeholder="120210000000001" />
+
+      <p className="rounded-xl bg-sand-50 px-3 py-2.5 text-[0.74rem] leading-snug text-ink">
+        Guardar aquí no crea anuncios ni activa presupuesto. Las fechas se completan sólo después de que el usuario confirme inicio y término.
+      </p>
 
       <Aviso estado={estado} />
-      <Enviar>Crear campaña</Enviar>
+      <Enviar>Guardar sin activar</Enviar>
     </form>
   );
 }
@@ -144,9 +146,9 @@ function Sincronizar({ configurado }: { configurado: boolean }) {
   const { pending } = useFormStatus();
   return (
     <Boton type="submit" tono={configurado ? "coral" : "claro"} disabled={pending || !configurado}
-           title={configurado ? undefined : "Falta el token de Meta en el entorno"}>
+           title={configurado ? undefined : "La conexión de lectura está pendiente"}>
       <Icono nombre="destello" className={`size-4 ${pending ? "animate-latir" : ""}`} />
-      {pending ? "Trayendo de Meta…" : "Sincronizar con Meta"}
+      {pending ? "Actualizando…" : "Actualizar datos"}
     </Boton>
   );
 }

@@ -28,7 +28,7 @@ export default async function LayoutPanel({ children }: { children: React.ReactN
         avatarUrl={avatarUrl}
       />
 
-      <div className="flex min-w-0 flex-1 flex-col lg:pl-[292px]">
+      <div className="panel-contenido flex min-w-0 flex-1 flex-col">
         <main className="imprimir-completo flex-1 px-4 py-6 sm:px-7 sm:py-8 lg:pr-8">
           <div className="mx-auto w-full max-w-[86rem] animate-entrar">{children}</div>
         </main>

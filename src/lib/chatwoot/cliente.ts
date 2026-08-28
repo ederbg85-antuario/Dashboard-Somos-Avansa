@@ -123,6 +123,17 @@ export async function conversaciones(): Promise<ConversacionCW[]> {
   return [...new Map(juntas.map((conversacion) => [conversacion.id, conversacion])).values()];
 }
 
+/**
+ * Confirma una conversación contra la API autenticada de la cuenta y vuelve
+ * a cerrar el alcance sobre la bandeja oficial. Se usa cuando un webhook
+ * válido omite `account_id`, como ocurre en algunas versiones al crear chats.
+ */
+export async function conversacionPerteneceALaBandeja(conversacion: number): Promise<boolean> {
+  if (!Number.isSafeInteger(conversacion) || conversacion <= 0) return false;
+  const respuesta = await pedir<ConversacionCW>(`/conversations/${conversacion}`);
+  return respuesta.id === conversacion && respuesta.inbox_id === bandejaId;
+}
+
 /** Mensajes de una conversación, del más viejo al más nuevo. */
 export async function mensajes(conversacion: number): Promise<MensajeCW[]> {
   const acumulados: MensajeCW[] = [];

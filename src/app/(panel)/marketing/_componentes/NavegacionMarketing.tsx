@@ -6,8 +6,9 @@ import { MarcaPlataforma } from "./MarcaPlataforma";
 
 const PESTANAS = [
   { href: "/marketing", etiqueta: "Resumen", plataforma: "avansa", exacta: true },
-  { href: "/marketing/meta", etiqueta: "Meta Ads", plataforma: "meta" },
-  { href: "/marketing/search-console", etiqueta: "Search Console", plataforma: "search" },
+  { href: "/marketing/meta", etiqueta: "Publicidad", plataforma: "meta" },
+  { href: "/marketing/sitio-web", etiqueta: "Sitio web", plataforma: "sitio" },
+  { href: "/marketing/search-console", etiqueta: "SEO", plataforma: "search" },
   { href: "/marketing/instagram", etiqueta: "Instagram", plataforma: "instagram" },
   { href: "/marketing/contenido", etiqueta: "Calendario", plataforma: "calendario", sinPeriodo: true },
 ] as const;

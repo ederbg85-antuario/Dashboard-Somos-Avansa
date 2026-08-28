@@ -31,7 +31,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   const destino = typeof cuerpo.a === "string" ? cuerpo.a : "";
   if (!destino) return NextResponse.json({ error: "Elige un asesor." }, { status: 400 });
   if (!cw.hayChatwoot || !cw.bandejaId) {
-    return NextResponse.json({ error: "Chatwoot no está configurado." }, { status: 503 });
+    return NextResponse.json({ error: "La bandeja oficial no está configurada." }, { status: 503 });
   }
 
   const supabase = await clienteServidor();
@@ -53,6 +53,9 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     .update({ asesor_id: destino })
     .eq("id", local.lead_id);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (error) {
+    console.error("[avansa] No se pudo reasignar la conversación", { codigo: error.code });
+    return NextResponse.json({ error: "No se pudo cambiar el asesor. Intenta de nuevo." }, { status: 400 });
+  }
   return NextResponse.json({ asignadoA: destino });
 }

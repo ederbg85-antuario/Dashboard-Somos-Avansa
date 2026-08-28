@@ -78,15 +78,14 @@ export default async function Instagram({
   const configuracionContenido = estadoConfiguracionPublicacion(["instagram"]);
   const validacionContenido = configuracionContenido.lista
     ? await verificarActivosPublicacion(["instagram"])
-    : { ok: false as const, error: "Faltan credenciales de Instagram." };
-  const credencialesContenido = configuracionContenido.lista && validacionContenido.ok;
-  const errorContenido = validacionContenido.ok ? "" : validacionContenido.error;
+    : { ok: false as const, error: "La conexión de publicación está pendiente." };
+  const publicacionDisponible = configuracionContenido.lista && validacionContenido.ok;
 
   return (
     <>
       <CabeceraMarketing
         titulo="Instagram"
-        apoyo="Planeación editorial de Instagram con métricas internas verificables. El rendimiento orgánico aparecerá cuando Meta autorice Insights."
+        apoyo="Planeación editorial de Instagram con datos internos verificables. El rendimiento aparecerá cuando la cuenta permita su lectura."
         acciones={<><SelectorPeriodo actual={rango.clave} /><BotonEnlace href="/marketing/contenido" tono="coral">Nueva pieza</BotonEnlace></>}
       />
 
@@ -95,7 +94,7 @@ export default async function Instagram({
         tono="instagram"
         ceja={`${rango.etiqueta} · @somos.avansa`}
         titulo={<>Contenido con intención, <span className="text-white/70">no sólo publicaciones.</span></>}
-        texto="Esta vista cuenta piezas guardadas en el calendario de Avansa. Seguidores, alcance e interacciones quedan vacíos hasta tener permiso oficial de Instagram Insights."
+        texto="Esta vista cuenta piezas guardadas en el calendario de Avansa. Seguidores, alcance e interacciones quedan vacíos hasta tener permiso oficial de lectura."
         cifras={[
           { etiqueta: "Piezas creadas", valor: numero(piezas.length) },
           { etiqueta: "Programadas", valor: numero(programados) },
@@ -107,17 +106,17 @@ export default async function Instagram({
         <MetricaPlataforma rotulo="Piezas" valor={numero(piezas.length)} apoyo={`Creadas durante ${rango.etiqueta.toLowerCase()}`} icono="carpeta" color="#EE2A7B" destacado />
         <MetricaPlataforma rotulo="Reels" valor={numero(reels)} apoyo="Video vertical registrado" icono="destello" color="#6228D7" />
         <MetricaPlataforma rotulo="Historias" valor={numero(historias)} apoyo="Historias dentro del calendario" icono="ojo" color="#F9A12B" />
-        <MetricaPlataforma rotulo="Alcance orgánico" valor="—" apoyo="Pendiente de Instagram Insights" icono="usuarios" color="#6B7785" />
+        <MetricaPlataforma rotulo="Alcance orgánico" valor="—" apoyo="Lectura de la cuenta pendiente" icono="usuarios" color="#6B7785" />
       </div>
 
       <div className="mt-4">
         <EstadoFuente
           plataforma="instagram"
-          titulo={credencialesContenido ? "Credenciales de contenido disponibles" : "Publicación oficial pendiente"}
-          texto={credencialesContenido
+          titulo={publicacionDisponible ? "Publicación disponible" : "Publicación oficial pendiente"}
+          texto={publicacionDisponible
             ? "Cuenta y permisos verificados para el calendario."
-            : errorContenido}
-          estado={credencialesContenido ? "conectado" : "pendiente"}
+            : "La cuenta todavía no tiene todos los permisos de publicación."}
+          estado={publicacionDisponible ? "conectado" : "pendiente"}
           accion={<BotonEnlace href="/marketing/contenido" tono="claro" tamano="sm">Abrir calendario</BotonEnlace>}
         />
       </div>

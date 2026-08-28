@@ -51,9 +51,8 @@ export default async function CalendarioContenido() {
   const conexion = estadoConfiguracionPublicacion();
   const activos = conexion.lista
     ? await verificarActivosPublicacion(["facebook", "instagram"])
-    : { ok: false as const, error: "Faltan las credenciales de publicación." };
+    : { ok: false as const, error: "La conexión de publicación está pendiente." };
   const publicacionDisponible = conexion.lista && activos.ok;
-  const errorConexion = activos.ok ? "" : activos.error;
 
   return (
     <>
@@ -122,7 +121,7 @@ export default async function CalendarioContenido() {
                       )}
                       {contenido.error_publicacion && (
                         <p className="mt-2 rounded-lg bg-coral-50 px-2.5 py-2 text-[0.72rem] leading-snug text-coral-700">
-                          {contenido.error_publicacion}
+                          La publicación necesita revisión antes de volver a intentarse.
                         </p>
                       )}
                     </div>
@@ -134,7 +133,7 @@ export default async function CalendarioContenido() {
           <p className="mt-4 text-[0.72rem] leading-relaxed text-slate">
             {publicacionDisponible
               ? "Conexión verificada. Sólo se envían piezas autorizadas."
-              : `Calendario activo; publicación pendiente: ${errorConexion}`}
+              : "Calendario activo; la publicación externa sigue pendiente de permisos."}
           </p>
         </Tarjeta>
 

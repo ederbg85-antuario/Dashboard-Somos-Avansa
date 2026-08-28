@@ -114,25 +114,25 @@ export default async function Ajustes() {
               />
               <Conexion
                 activa
-                titulo="Supabase"
-                detalle="Base de datos, sesiones y permisos por rol. Las políticas de la base aplican aunque alguien escriba la URL a mano."
+                titulo="Datos y acceso seguro"
+                detalle="Solicitudes, sesiones y permisos por rol están conectados y protegidos."
               />
               <Conexion
                 activa={metaConfigurado()}
-                titulo="Meta Marketing API"
+                titulo="Publicidad"
                 detalle={
                   metaConfigurado()
-                    ? "Configurada. El módulo de Marketing puede sincronizar impresiones, clics, gasto y leads por campaña y día."
-                    : "Sin configurar. Define META_ACCESS_TOKEN y META_AD_ACCOUNT_ID en el entorno; mientras tanto la captura manual funciona igual."
+                    ? "Conectada en modo lectura para actualizar impresiones, clics, inversión y solicitudes por campaña y día."
+                    : "La lectura automática está pendiente; la captura manual continúa disponible."
                   }
               />
               <Conexion
                 activa={hayChatwoot && Boolean(bandejaId)}
-                titulo="WhatsApp oficial · Chatwoot"
+                titulo="WhatsApp oficial"
                 detalle={
                   hayChatwoot && bandejaId
-                    ? `Conectado a la bandeja ${bandejaId}. Los mensajes entrantes pasan por el reparto uno a uno y sólo llegan al asesor asignado.`
-                    : "Pendiente de registrar el número oficial y guardar la bandeja, el token técnico y el webhook de Chatwoot en producción."
+                    ? "Conectado a la bandeja de entrada. Los mensajes pasan por el reparto uno a uno y sólo llegan al asesor asignado."
+                    : "La conexión de la bandeja oficial está pendiente de completar."
                 }
               />
             </ul>
