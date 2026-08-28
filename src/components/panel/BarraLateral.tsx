@@ -126,7 +126,7 @@ export function BarraLateral({
           <button
             type="button"
             onClick={() => setAbierta((valor) => !valor)}
-            className="grid size-9 place-items-center rounded-xl text-white/70 transition hover:bg-white/10 hover:text-white"
+            className="barra-lateral__accion grid size-9 place-items-center rounded-xl transition"
             aria-label={abierta ? "Cerrar menú" : "Abrir menú"}
             aria-expanded={abierta}
             aria-controls="navegacion-principal"
@@ -179,7 +179,7 @@ export function BarraLateral({
           <button
             type="button"
             onClick={cambiarAncho}
-            className="barra-lateral__colapsar hidden size-8 shrink-0 place-items-center rounded-xl text-white/55 transition hover:bg-white/10 hover:text-white lg:grid"
+            className="barra-lateral__accion barra-lateral__colapsar hidden size-8 shrink-0 place-items-center rounded-xl transition lg:grid"
             aria-label={compacta ? "Ampliar navegación" : "Compactar navegación"}
             aria-pressed={compacta}
             title={compacta ? "Ampliar navegación" : "Compactar navegación"}
@@ -189,7 +189,7 @@ export function BarraLateral({
           <button
             type="button"
             onClick={() => setAbierta(false)}
-            className="grid size-8 place-items-center rounded-xl text-white/55 transition hover:bg-white/10 hover:text-white lg:hidden"
+            className="barra-lateral__accion grid size-8 place-items-center rounded-xl transition lg:hidden"
             aria-label="Cerrar menú"
           >
             <Icono nombre="cruz" className="size-4" />
@@ -197,7 +197,7 @@ export function BarraLateral({
         </div>
 
         <div className="barra-lateral__distintivo relative px-4 pb-4">
-          <p className="inline-flex items-center gap-2 rounded-full bg-white/[0.07] px-3 py-1.5 text-[0.62rem] font-semibold uppercase tracking-[0.16em] text-white/60 shadow-tarjeta">
+          <p className="barra-lateral__distintivo-etiqueta inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[0.62rem] font-semibold uppercase tracking-[0.16em] shadow-tarjeta">
             <span className="size-1.5 rounded-full bg-coral" aria-hidden="true" />
             Sistema integral
           </p>
@@ -206,7 +206,7 @@ export function BarraLateral({
         <nav className="scroll-oscuro relative min-h-0 flex-1 overflow-y-auto px-3 pb-4" aria-label="Secciones del sistema">
           {grupos.map((grupo) => (
             <div key={grupo.titulo} className="barra-lateral__seccion mb-5 last:mb-0">
-              <p className="barra-lateral__grupo mb-1.5 px-3 text-[0.63rem] font-semibold uppercase tracking-[0.15em] text-white/50">
+              <p className="barra-lateral__grupo mb-1.5 px-3 text-[0.63rem] font-semibold uppercase tracking-[0.15em]">
                 {grupo.titulo}
               </p>
               <ul className="space-y-0.5">
@@ -237,23 +237,22 @@ export function BarraLateral({
                           aria-expanded={compactaVisual ? undefined : submenuAbierto}
                           aria-controls={compactaVisual ? undefined : idSubmenu}
                           aria-label={compactaVisual ? entrada.etiqueta : undefined}
+                          data-activo={esta || undefined}
                           title={entrada.descripcion}
-                          className={`barra-lateral__enlace group relative flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[0.83rem] font-medium transition ${
+                          className={`barra-lateral__enlace group relative flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left font-medium transition ${
                             esta
-                              ? "bg-white/[0.11] text-white shadow-[0_8px_22px_-14px_rgb(0_0_0/.7),inset_0_1px_0_rgb(255_255_255/.06)]"
-                              : "text-white/65 hover:bg-white/[0.07] hover:text-white"
+                              ? "bg-white/[0.11] shadow-[0_8px_22px_-14px_rgb(0_0_0/.7),inset_0_1px_0_rgb(255_255_255/.06)]"
+                              : "hover:bg-white/[0.07]"
                           }`}
                         >
                           <Icono
                             nombre={entrada.icono}
-                            className={`size-[18px] shrink-0 ${
-                              esta ? "text-coral" : "text-white/35 group-hover:text-coral"
-                            }`}
+                            className="barra-lateral__icono size-[18px] shrink-0"
                           />
                           <span className="barra-lateral__texto min-w-0 flex-1">{entrada.etiqueta}</span>
                           <Icono
                             nombre="chevron"
-                            className={`barra-lateral__flecha size-4 shrink-0 text-white/30 transition-transform duration-300 ${
+                            className={`barra-lateral__flecha size-4 shrink-0 transition-transform duration-300 ${
                               submenuAbierto ? "rotate-90" : ""
                             }`}
                           />
@@ -270,18 +269,19 @@ export function BarraLateral({
                                     href={subentrada.href}
                                     onClick={() => setAbierta(false)}
                                     aria-current={subentradaActiva ? "page" : undefined}
+                                    data-activo={subentradaActiva || undefined}
                                     title={subentrada.descripcion}
-                                    className={`group/sub flex items-center gap-2.5 rounded-xl px-3 py-2 text-[0.75rem] font-medium transition ${
+                                    className={`barra-lateral__subenlace group/sub flex items-center gap-2.5 rounded-xl px-3 py-2 font-medium transition ${
                                       subentradaActiva
-                                        ? "bg-white/[0.1] text-white shadow-[inset_0_1px_0_rgb(255_255_255/.05)]"
-                                        : "text-white/60 hover:bg-white/[0.06] hover:text-white"
+                                        ? "bg-white/[0.1] shadow-[inset_0_1px_0_rgb(255_255_255/.05)]"
+                                        : "hover:bg-white/[0.06]"
                                     }`}
                                   >
                                     <span
-                                      className={`size-1.5 shrink-0 rounded-full transition ${
+                                      className={`barra-lateral__subpunto size-1.5 shrink-0 rounded-full transition ${
                                         subentradaActiva
                                           ? "bg-coral"
-                                          : "bg-white/25 group-hover/sub:bg-coral/70"
+                                          : "group-hover/sub:bg-coral/70"
                                       }`}
                                       aria-hidden="true"
                                     />
@@ -303,18 +303,17 @@ export function BarraLateral({
                         onClick={() => setAbierta(false)}
                         aria-current={esta ? "page" : undefined}
                         aria-label={compactaVisual ? entrada.etiqueta : undefined}
+                        data-activo={esta || undefined}
                         title={entrada.descripcion}
-                        className={`barra-lateral__enlace group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-[0.83rem] font-medium transition ${
+                        className={`barra-lateral__enlace group relative flex items-center gap-3 rounded-xl px-3 py-2.5 font-medium transition ${
                           esta
-                            ? "bg-white/[0.11] text-white shadow-[0_8px_22px_-14px_rgb(0_0_0/.7),inset_0_1px_0_rgb(255_255_255/.06)]"
-                            : "text-white/65 hover:bg-white/[0.07] hover:text-white"
+                            ? "bg-white/[0.11] shadow-[0_8px_22px_-14px_rgb(0_0_0/.7),inset_0_1px_0_rgb(255_255_255/.06)]"
+                            : "hover:bg-white/[0.07]"
                         }`}
                       >
                         <Icono
                           nombre={entrada.icono}
-                          className={`size-[18px] shrink-0 ${
-                            esta ? "text-coral" : "text-white/35 group-hover:text-coral"
-                          }`}
+                          className="barra-lateral__icono size-[18px] shrink-0"
                         />
                         <span className="barra-lateral__texto">{entrada.etiqueta}</span>
                       </Link>
@@ -328,10 +327,10 @@ export function BarraLateral({
 
         <div className="barra-lateral__pie relative shrink-0 p-3">
           <SelectorTema />
-          <div className="barra-lateral__perfil mt-2 flex items-center gap-2 rounded-2xl bg-white/[0.07] p-2 shadow-[inset_0_1px_0_rgb(255_255_255/.05),0_12px_28px_-18px_rgb(0_0_0/.8)] backdrop-blur-sm">
+          <div className="barra-lateral__perfil mt-2 flex items-center gap-2 rounded-2xl p-2 shadow-[inset_0_1px_0_rgb(255_255_255/.05),0_12px_28px_-18px_rgb(0_0_0/.8)] backdrop-blur-sm">
             <Link
               href="/perfil"
-              className="barra-lateral__usuario flex min-w-0 flex-1 items-center gap-3 rounded-xl p-1 transition hover:bg-white/[0.07]"
+              className="barra-lateral__usuario flex min-w-0 flex-1 items-center gap-3 rounded-xl p-1 transition"
               onClick={() => setAbierta(false)}
               title={`${nombre} · ${ROLES[rol].nombre}`}
               aria-label={`Abrir perfil de ${nombre}`}
@@ -343,8 +342,8 @@ export function BarraLateral({
                 {!avatarUrl && iniciales(nombre)}
               </span>
               <span className="barra-lateral__texto min-w-0 flex-1">
-                <span className="block truncate text-[0.82rem] font-semibold text-white">{nombre}</span>
-                <span className="block truncate text-[0.7rem] text-white/60" title={email}>
+                <span className="barra-lateral__nombre block truncate text-[0.82rem] font-semibold">{nombre}</span>
+                <span className="barra-lateral__rol block truncate text-[0.7rem]" title={email}>
                   {ROLES[rol].nombre}
                 </span>
               </span>

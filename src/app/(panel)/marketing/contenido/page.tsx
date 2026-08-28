@@ -12,6 +12,7 @@ import {
   verificarActivosPublicacion,
 } from "@/lib/meta/publicador";
 import { CabeceraMarketing, HeroPlataforma } from "../_componentes/Presentacion";
+import { AutorizarPieza } from "./AutorizarPieza";
 import { FormularioContenido } from "./FormularioContenido";
 
 export const metadata: Metadata = { title: "Calendario de contenido" };
@@ -53,6 +54,10 @@ export default async function CalendarioContenido() {
     ? await verificarActivosPublicacion(["facebook", "instagram"])
     : { ok: false as const, error: "La conexión de publicación está pendiente." };
   const publicacionDisponible = conexion.lista && activos.ok;
+  // La ruta es dinámica: esta marca se recalcula por solicitud para distinguir
+  // una pieza pendiente de una que ya perdió su hora de publicación.
+  // eslint-disable-next-line react-hooks/purity
+  const ahora = Date.now();
 
   return (
     <>
@@ -88,8 +93,14 @@ export default async function CalendarioContenido() {
                 const mediosDePieza = mediosPorContenido.get(contenido.id) ?? [];
                 const primero = mediosDePieza[0];
                 const resultadoMeta = leerResultadoMeta(contenido.resultado_meta);
-                const [etiqueta, color] = contenido.estado === "programado" && !contenido.autorizado_en
-                  ? ["Sin autorizar", "#6B7785"] as const
+                const vencidaSinAutorizar = contenido.estado === "programado"
+                  && !contenido.autorizado_en
+                  && Boolean(contenido.programado_para)
+                  && new Date(contenido.programado_para!).getTime() <= ahora;
+                const [etiqueta, color] = vencidaSinAutorizar
+                  ? ["No se publicó", "#E63A58"] as const
+                  : contenido.estado === "programado" && !contenido.autorizado_en
+                    ? ["Falta autorizar", "#6B7785"] as const
                   : ESTADOS[contenido.estado];
                 return (
                   <article key={contenido.id} className="group overflow-hidden rounded-2xl bg-mist shadow-[0_10px_26px_-22px_rgb(15_45_61/.42)] transition duration-200 hover:-translate-y-1 hover:bg-white hover:shadow-elevada">
@@ -114,6 +125,20 @@ export default async function CalendarioContenido() {
                       {contenido.autorizado_en && contenido.estado !== "publicado" && (
                         <p className="mt-2 text-[0.72rem] font-semibold text-teal-700">Aprobada para la cola automática</p>
                       )}
+                      {contenido.estado === "programado" && !contenido.autorizado_en && (
+                        <>
+                          <p className={`mt-2 text-[0.72rem] font-semibold ${vencidaSinAutorizar ? "text-coral-700" : "text-sand-700"}`}>
+                            {vencidaSinAutorizar
+                              ? "La hora pasó sin autorización; todavía no se envió a Meta."
+                              : "La fecha está apartada, pero aún falta autorizar el envío."}
+                          </p>
+                          <AutorizarPieza
+                            contenidoId={contenido.id}
+                            disponible={publicacionDisponible}
+                            vencida={vencidaSinAutorizar}
+                          />
+                        </>
+                      )}
                       {(resultadoMeta.facebook?.id_externo || resultadoMeta.instagram?.id_externo) && (
                         <p className="mt-2 text-[0.7rem] text-slate">
                           Confirmación: {[resultadoMeta.facebook?.id_externo && "Facebook", resultadoMeta.instagram?.id_externo && "Instagram"].filter(Boolean).join(" + ")}
@@ -132,8 +157,8 @@ export default async function CalendarioContenido() {
           )}
           <p className="mt-4 text-[0.72rem] leading-relaxed text-slate">
             {publicacionDisponible
-              ? "Conexión verificada. Sólo se envían piezas autorizadas."
-              : "Calendario activo; la publicación externa sigue pendiente de permisos."}
+              ? "Conexión verificada. Las piezas autorizadas salen automáticamente en su fecha."
+              : "La programación automática está detenida hasta volver a autorizar Facebook e Instagram en Meta."}
           </p>
         </Tarjeta>
 

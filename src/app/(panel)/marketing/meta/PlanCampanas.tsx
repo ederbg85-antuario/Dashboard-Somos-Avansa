@@ -3,7 +3,13 @@ import { Insignia } from "@/components/ui/Insignia";
 import { dineroCorto, numero } from "@/lib/formato";
 import { PLANES_CAMPANA } from "../_lib/planes-campana";
 
-export function PlanCampanas({ campanasRegistradas }: { campanasRegistradas: number }) {
+export function PlanCampanas({
+  campanasRegistradas,
+  campanasEnMeta,
+}: {
+  campanasRegistradas: number;
+  campanasEnMeta: number;
+}) {
   return (
     <section className="mt-4 rounded-2xl bg-white p-5 shadow-tarjeta">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -18,7 +24,9 @@ export function PlanCampanas({ campanasRegistradas }: { campanasRegistradas: num
             </div>
           </div>
         </div>
-        <Insignia solida color="#556270">{numero(campanasRegistradas)} registradas</Insignia>
+        <Insignia solida color="#556270">
+          {numero(campanasEnMeta)} en Meta · {numero(campanasRegistradas)} en Avansa
+        </Insignia>
       </div>
 
       <div className="mt-5 grid gap-3 lg:grid-cols-2">
@@ -29,7 +37,9 @@ export function PlanCampanas({ campanasRegistradas }: { campanasRegistradas: num
                 <p className="text-[0.86rem] font-semibold text-ink">{plan.nombre}</p>
                 <p className="mt-1 text-[0.72rem] text-slate">{plan.audiencia}</p>
               </div>
-              <Insignia solida color="#556270">Borrador</Insignia>
+              <Insignia solida color="#556270">
+                {campanasEnMeta >= PLANES_CAMPANA.length ? "Borrador en Meta" : "Plan en Avansa"}
+              </Insignia>
             </div>
             <dl className="mt-4 grid grid-cols-3 gap-2">
               <Dato etiqueta="Diario" valor={dineroCorto(plan.presupuestoDiario)} />
@@ -54,13 +64,13 @@ export function PlanCampanas({ campanasRegistradas }: { campanasRegistradas: num
       </div>
 
       <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-        <Validacion texto="Cuenta, moneda y cobro" />
-        <Validacion texto="Dominio y eventos" />
-        <Validacion texto="Medición de conversiones" />
-        <Validacion texto="Inicio y término" />
+        <Validacion texto="Cuenta, MXN y página" estado="Verificado" listo />
+        <Validacion texto="Píxel y dataset" estado="Verificado" listo />
+        <Validacion texto="Pago y teléfono" estado="Pendiente" />
+        <Validacion texto="Inicio y término" estado="Pendiente" />
       </div>
       <p className="mt-3 text-[0.72rem] leading-relaxed text-slate">
-        Cada campaña ya tiene cinco piezas seleccionadas. Antes de crear anuncios todavía deben validarse los cuatro puntos en la cuenta publicitaria y confirmarse las fechas.
+        Las dos campañas ya existen como borradores externos y no generan gasto. Tráfico tiene su prueba de cinco creativos configurada; en Clientes potenciales todavía falta completar los anuncios. Para publicar siguen pendientes el método de pago, la verificación telefónica y las fechas.
       </p>
     </section>
   );
@@ -75,12 +85,20 @@ function Dato({ etiqueta, valor }: { etiqueta: string; valor: string }) {
   );
 }
 
-function Validacion({ texto }: { texto: string }) {
+function Validacion({
+  texto,
+  estado,
+  listo = false,
+}: {
+  texto: string;
+  estado: string;
+  listo?: boolean;
+}) {
   return (
     <div className="flex items-center gap-2 rounded-xl bg-sand-50 px-3 py-2 text-[0.72rem] font-medium text-ink">
-      <Icono nombre="reloj" className="size-3.5 shrink-0 text-sand" />
+      <Icono nombre={listo ? "cheque" : "reloj"} className={`size-3.5 shrink-0 ${listo ? "text-teal" : "text-sand"}`} />
       <span>{texto}</span>
-      <span className="ml-auto text-slate">Pendiente</span>
+      <span className={`ml-auto ${listo ? "text-teal-700" : "text-slate"}`}>{estado}</span>
     </div>
   );
 }

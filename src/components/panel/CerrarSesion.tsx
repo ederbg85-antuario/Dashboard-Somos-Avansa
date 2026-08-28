@@ -29,7 +29,7 @@ export function CerrarSesion() {
       }
       title="Cerrar sesión"
       aria-label="Cerrar sesión"
-      className="grid size-8 shrink-0 place-items-center rounded-xl text-white/40 transition hover:bg-white/10 hover:text-coral disabled:opacity-50"
+      className="barra-lateral__salir grid size-8 shrink-0 place-items-center rounded-xl transition disabled:opacity-50"
     >
       <Icono nombre="salir" className={`size-[18px] ${saliendo ? "animate-latir" : ""}`} />
     </button>

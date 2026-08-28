@@ -84,11 +84,93 @@ body {
 /* La navegación siempre es oscura para separar el espacio de trabajo de los
    controles globales. Las manchas son estáticas y deliberadamente suaves. */
 .barra-avansa {
+  --barra-texto: rgb(241 247 249 / .78);
+  --barra-texto-fuerte: #f7fbfc;
+  --barra-texto-suave: rgb(226 237 241 / .56);
+  --barra-icono: rgb(218 232 237 / .5);
+  --barra-control: rgb(255 255 255 / .075);
+  --barra-control-hover: rgb(255 255 255 / .13);
   background:
     radial-gradient(circle at 105% -3%, rgb(255 77 109 / .17), transparent 13rem),
     radial-gradient(circle at -10% 104%, rgb(47 182 163 / .13), transparent 15rem),
     linear-gradient(155deg, #081820 0%, #0c2633 52%, #103543 100%);
   box-shadow: 0 5px 14px rgb(2 13 19 / .2), 0 34px 72px -22px rgb(2 13 19 / .72);
+  color: var(--barra-texto);
+}
+
+/* Colores semánticos de la navegación. Son deliberadamente independientes
+   del tema del contenido para que ningún utility claro/oscuro vuelva a dejar
+   controles negros sobre la barra azul. */
+.barra-avansa .barra-lateral__accion,
+.barra-avansa .selector-tema,
+.barra-avansa .barra-lateral__salir {
+  color: var(--barra-texto);
+}
+
+.barra-avansa .barra-lateral__accion:hover,
+.barra-avansa .selector-tema:hover,
+.barra-avansa .barra-lateral__salir:hover {
+  background: var(--barra-control-hover);
+  color: var(--barra-texto-fuerte);
+}
+
+.barra-avansa .barra-lateral__distintivo-etiqueta,
+.barra-avansa .selector-tema,
+.barra-avansa .barra-lateral__perfil {
+  background: var(--barra-control);
+}
+
+.barra-avansa .barra-lateral__distintivo-etiqueta,
+.barra-avansa .barra-lateral__grupo,
+.barra-avansa .barra-lateral__rol {
+  color: var(--barra-texto-suave);
+}
+
+.barra-avansa .barra-lateral__enlace {
+  color: var(--barra-texto);
+  font-size: .82rem;
+}
+
+.barra-avansa .barra-lateral__enlace:hover,
+.barra-avansa .barra-lateral__enlace[data-activo="true"] {
+  color: var(--barra-texto-fuerte);
+}
+
+.barra-avansa .barra-lateral__icono,
+.barra-avansa .barra-lateral__flecha {
+  color: var(--barra-icono);
+}
+
+.barra-avansa .barra-lateral__enlace:hover .barra-lateral__icono,
+.barra-avansa .barra-lateral__enlace[data-activo="true"] .barra-lateral__icono {
+  color: #ff6b86;
+}
+
+.barra-avansa .barra-lateral__subenlace {
+  color: var(--barra-texto);
+  font-size: .75rem;
+}
+
+.barra-avansa .barra-lateral__subenlace:hover,
+.barra-avansa .barra-lateral__subenlace[data-activo="true"],
+.barra-avansa .barra-lateral__nombre {
+  color: var(--barra-texto-fuerte);
+}
+
+.barra-avansa .barra-lateral__subpunto {
+  background: rgb(224 237 241 / .34);
+}
+
+.barra-avansa .barra-lateral__subenlace[data-activo="true"] .barra-lateral__subpunto {
+  background: #ff4d6d;
+}
+
+.barra-avansa .barra-lateral__usuario:hover {
+  background: var(--barra-control-hover);
+}
+
+.barra-avansa .barra-lateral__salir:hover {
+  color: #ff6b86;
 }
 
 .barra-avansa option {

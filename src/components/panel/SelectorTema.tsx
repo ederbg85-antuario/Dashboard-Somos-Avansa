@@ -79,7 +79,7 @@ export function SelectorTema() {
     <button
       type="button"
       onClick={cambiar}
-      className="selector-tema flex min-h-10 w-full min-w-0 items-center gap-2 rounded-xl bg-white/[0.06] px-2.5 py-2 text-left text-white/55 shadow-[inset_0_1px_0_rgb(255_255_255/.04)] transition hover:bg-white/[0.1] hover:text-white"
+      className="selector-tema flex min-h-10 w-full min-w-0 items-center gap-2 rounded-xl px-2.5 py-2 text-left shadow-[inset_0_1px_0_rgb(255_255_255/.04)] transition"
       aria-label={accion}
       title={accion}
     >
@@ -102,7 +102,7 @@ export function SelectorTema() {
           <path d="M20.2 15.3A8.4 8.4 0 0 1 8.7 3.8 8.5 8.5 0 1 0 20.2 15.3Z" />
         )}
       </svg>
-      <span className="selector-tema__etiqueta min-w-0 flex-1 text-[0.69rem] font-semibold text-white/75">
+      <span className="selector-tema__etiqueta min-w-0 flex-1 text-[0.69rem] font-semibold">
         {tema === "dark" ? "Tema claro" : "Tema oscuro"}
       </span>
     </button>

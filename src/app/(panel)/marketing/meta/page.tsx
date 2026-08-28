@@ -74,7 +74,10 @@ export default async function MetaAds({
         ]}
       />
 
-      <PlanCampanas campanasRegistradas={listaCampanas.length} />
+      <PlanCampanas
+        campanasRegistradas={listaCampanas.length}
+        campanasEnMeta={listaCampanas.filter((campana) => Boolean(campana.meta_campaign_id)).length}
+      />
 
       <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <MetricaPlataforma rotulo="Impresiones" valor={numero(total.impresiones)} apoyo={`${variacion(total.impresiones, anterior.impresiones)?.toFixed(1) ?? "—"} % vs. periodo anterior`} icono="ojo" color="#0866FF" />
