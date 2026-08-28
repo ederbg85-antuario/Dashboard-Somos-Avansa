@@ -32,10 +32,13 @@ export default async function CalendarioContenido() {
   ]);
 
   const mediosPorContenido = new Map<string, (ContenidoMedio & { url: string | null })[]>();
-  for (const medio of (medios ?? []) as ContenidoMedio[]) {
+  const mediosFirmados = await Promise.all(((medios ?? []) as ContenidoMedio[]).map(async (medio) => {
     const { data } = await supabase.storage.from("avansa-contenido").createSignedUrl(medio.storage_path, 60 * 60);
+    return { ...medio, url: data?.signedUrl ?? null };
+  }));
+  for (const medio of mediosFirmados) {
     const lista = mediosPorContenido.get(medio.contenido_id) ?? [];
-    lista.push({ ...medio, url: data?.signedUrl ?? null });
+    lista.push(medio);
     mediosPorContenido.set(medio.contenido_id, lista);
   }
   const lista = (contenidos ?? []) as ContenidoSocial[];

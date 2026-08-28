@@ -18,7 +18,7 @@ control financiero sobre el mismo proyecto de Supabase.
 | **Solicitudes** | Recibe el formulario de somosavansa.com y conserva su atribución. | Cada asesor ve las suyas; administración ve todas. |
 | **CRM** | Pipeline, clasificación, actividades y expediente documental de cada lead. | Cada asesor trabaja sólo su cartera; administración ve el conjunto. |
 | **Conversaciones** | Refleja la bandeja de WhatsApp conectada mediante Chatwoot. | Cada asesor responde sólo sus conversaciones; administración puede supervisarlas todas en modo lectura. |
-| **Marketing** | Campañas de Meta, métricas diarias y costo por solicitud contra el CRM. | Sólo administración. |
+| **Marketing** | Campañas de Meta, GA4, Search Console, métricas diarias y calendario editorial. | Sólo administración. |
 | **Finanzas y reportes** | Ingresos, egresos, plan de cuentas y estado de resultados. | Sólo administración. |
 | **Equipo y perfil** | Invitaciones, acceso, reparto y datos personales del equipo. | Administración gestiona el equipo; cada persona edita su perfil. |
 
@@ -193,7 +193,7 @@ src/
       solicitudes/          formulario web
       crm/                   pipeline, lista, ficha y alta manual
       conversaciones/       bandeja de WhatsApp
-      marketing/             campañas y métricas de Meta
+      marketing/             campañas, métricas, Google y calendario editorial
       finanzas/              movimientos y captura
       reportes/              estado de resultados
       equipo/                roles, acceso e invitaciones
@@ -232,8 +232,10 @@ de servicio tampoco autoriza a exponer secretos de Chatwoot o Meta al cliente.
 
 ## Meta Ads
 
-El módulo de Marketing permite captura manual. Para sincronizar métricas define
-en el entorno del servidor:
+El módulo de Marketing permite captura manual o sincronización de métricas. La
+app de Meta debe pertenecer únicamente al portfolio comercial **Somos Avansa**;
+su token nunca debe ser personal ni llegar al navegador. Para sincronizar
+métricas define en el entorno del servidor:
 
 ```dotenv
 META_ACCESS_TOKEN=...       # token de sistema con ads_read
@@ -244,6 +246,35 @@ META_API_VERSION=v23.0      # opcional
 **Sincronizar con Meta** importa impresiones, alcance, clics, gasto y leads por
 campaña y día. La escritura es `upsert` sobre campaña y fecha para corregir
 cifras posteriores sin duplicarlas.
+
+El **Calendario** permite preparar publicaciones, historias y reels para
+Facebook e Instagram, programarlos en horario de México y conservar el archivo
+en el bucket privado `avansa-contenido`. Los borradores y su programación sí
+quedan registrados desde el panel. La publicación automática no se activa hasta
+que la app de Meta tenga los permisos oficiales, los activos de Avansa y un
+token técnico de contenido: no se usan tokens personales ni se publica por
+error al guardar un borrador.
+
+Para esa última conexión se requieren `META_PAGE_ID`,
+`META_INSTAGRAM_ACCOUNT_ID` y un token técnico exclusivo de publicación. Meta
+puede exigir verificación del negocio y revisión/advanced access según el
+permiso y el formato. Esta restricción es de Meta, no del dashboard. Cuando la
+conexión esté aprobada se habilita el publicador; antes de lanzar una campaña o
+publicar contenido se revisa el borrador, audiencia y presupuesto en el panel.
+
+## Google Analytics y Search Console
+
+Marketing consulta sólo lectura de la propiedad GA4 y la propiedad de Search
+Console configuradas en las variables de entorno. El botón **Conectar Google**
+solicita únicamente `analytics.readonly` y `webmasters.readonly`; el refresh
+token se cifra como secreto operativo en `integraciones_google`, una tabla sin
+acceso desde el navegador. No se incluyen formularios, NSS, teléfonos ni otros
+datos personales en estas consultas.
+
+La integración muestra usuarios, sesiones, vistas y actividad en tiempo real
+de GA4, además de clics, impresiones, CTR, posición y consultas orgánicas de
+Search Console. Google procesa esos datos con distinta latencia: Search Console
+no es tiempo real y Meta también puede ajustar sus cifras después del cierre.
 
 ---
 
@@ -259,6 +290,8 @@ base; las más recientes endurecen permisos y completan la operación actual:
 | `0011` | Bandeja y conversaciones. |
 | `20260827211020` | Sólo admin/asesor, invitación obligatoria, perfiles, NSS cifrado, formulario actual, reparto global y RLS por asesor. |
 | `20260827221500` | Ajustes posteriores de privilegios, políticas e índices. |
+| `20260828012858` | Conexión OAuth de Google, calendario editorial, medios privados y RLS de marketing. |
+| `20260828015500` | Índices de las relaciones de las integraciones y el calendario. |
 
 Antes de aplicar migraciones con la CLI, compara el historial local con
 `supabase_migrations.schema_migrations`; no renombres ni reapliques versiones
