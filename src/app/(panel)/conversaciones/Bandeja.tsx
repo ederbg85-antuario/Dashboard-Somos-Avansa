@@ -257,7 +257,11 @@ export function Bandeja({
     : [{ clave: "mias" as const, etiqueta: "Asignadas a mí", n: cuenta.mias }];
 
   return (
-    <div className="h-[calc(100dvh-15rem)] min-h-[32rem] overflow-hidden rounded-2xl bg-white ring-1 ring-[#d7e4df] shadow-elevada">
+    <div className={`${
+      modoDemo
+        ? "h-[calc(100dvh-19.5rem)] min-h-[27rem]"
+        : "h-[calc(100dvh-15rem)] min-h-[32rem]"
+    } overflow-hidden rounded-2xl bg-white ring-1 ring-[#d7e4df] shadow-elevada`}>
       <div className="grid h-full lg:grid-cols-[21rem_1fr]">
 
         {/* ---------- columna izquierda: la lista ---------- */}
@@ -275,7 +279,7 @@ export function Bandeja({
               <input
                 value={busca}
                 onChange={(e) => setBusca(e.target.value)}
-                placeholder="Buscar por nombre, teléfono o texto"
+                placeholder="Buscar conversaciones"
                 className="h-9 w-full rounded-xl bg-mist pl-9 pr-3 text-[0.82rem] text-ink placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-coral/40"
               />
             </label>
@@ -287,7 +291,7 @@ export function Bandeja({
                   onClick={() => setFiltro(p.clave)}
                   className={`flex-1 rounded-lg px-2 py-1.5 text-[0.74rem] font-semibold transition ${
                     filtro === p.clave
-                      ? "bg-deep text-white"
+                      ? "bg-deep !text-white"
                       : "text-slate hover:bg-mist hover:text-ink"
                   }`}
                 >
