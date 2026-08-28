@@ -143,9 +143,14 @@ export async function verificarActivosPublicacion(plataformas: PlataformaMeta[])
   try {
     const config = configuracion(plataformas);
     const base = `https://graph.facebook.com/${config.version}`;
+    // Meta no permite consultar `/me/permissions` con un token de Página,
+    // aunque ese sea el token correcto (y estable) para publicar. Conservamos
+    // el token de Página para las mutaciones y usamos el token de usuario de
+    // larga duración únicamente para validar permisos y activos.
+    const tokenValidacion = process.env.META_CONTENT_VALIDATION_TOKEN?.trim() || config.token;
     const permisos = await pedirGraph<{ data?: PermisoGraph[] } & CuerpoGraph>(
       `${base}/me/permissions`,
-      config.token,
+      tokenValidacion,
     );
     const concedidos = new Set(
       (permisos.data ?? [])
@@ -170,10 +175,10 @@ export async function verificarActivosPublicacion(plataformas: PlataformaMeta[])
 
     const consultas: Promise<CuerpoGraph>[] = [];
     if (config.paginaId) {
-      consultas.push(pedirGraph<CuerpoGraph>(`${base}/${config.paginaId}?fields=id,name`, config.token));
+      consultas.push(pedirGraph<CuerpoGraph>(`${base}/${config.paginaId}?fields=id,name`, tokenValidacion));
     }
     if (config.instagramId) {
-      consultas.push(pedirGraph<CuerpoGraph>(`${base}/${config.instagramId}?fields=id,username`, config.token));
+      consultas.push(pedirGraph<CuerpoGraph>(`${base}/${config.instagramId}?fields=id,username`, tokenValidacion));
     }
     await Promise.all(consultas);
     return { ok: true };
