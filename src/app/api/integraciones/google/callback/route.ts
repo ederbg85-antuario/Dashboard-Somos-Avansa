@@ -57,7 +57,12 @@ export async function GET(request: NextRequest) {
       conectado_por: sesion.usuarioId,
       conectado_en: new Date().toISOString(),
     });
-    if (error) return regreso(request, "guardado_error");
+    if (error) {
+      // No registramos el token ni parámetros OAuth; el código basta para
+      // diagnosticar una migración o una variable de entorno incompleta.
+      console.error("No se pudo guardar la conexión de Google", { code: error.code, message: error.message });
+      return regreso(request, "guardado_error");
+    }
 
     const listo = regreso(request, "conectado");
     listo.cookies.set(COOKIE_ESTADO, "", { path: "/", maxAge: 0 });
