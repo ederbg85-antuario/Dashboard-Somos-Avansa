@@ -323,6 +323,18 @@ async function registrarError(
       guardarError?.message || "El trabajador perdio su bloqueo antes de registrar el fallo.",
     );
   }
+  const registro = {
+    contenidoId: contenido.id,
+    intento: intentos,
+    reintentable: seReintenta,
+    incierto: error.incierto,
+    error: detalleSeguro(error.message),
+  };
+  if (seReintenta) {
+    console.warn("[avansa][publicador-social] pieza aplazada", registro);
+  } else {
+    console.error("[avansa][publicador-social] pieza con error", registro);
+  }
   return seReintenta;
 }
 
