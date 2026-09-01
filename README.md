@@ -68,8 +68,17 @@ El alta es cerrada y sigue este flujo:
    vigente; el rol procede de esa invitación, nunca de metadatos enviados por
    el navegador.
 
-La plantilla brandeada del correo está en `supabase/templates/invite.html` y se
-debe copiar en **Supabase → Authentication → Email Templates → Invite user**.
+### Recuperación de contraseña
+
+1. Desde `/entrar`, la persona abre `/recuperar-contrasena` y solicita el correo.
+2. La plantilla `supabase/templates/recovery.html` envía `TokenHash` al callback
+   SSR `/auth/confirm`, que crea la cookie y redirige a
+   `/restablecer-contrasena`.
+3. La persona elige una contraseña nueva sin cambiar su UUID, perfil, leads ni
+   posición en el reparto.
+
+Las plantillas brandeadas están en `supabase/templates/` y se deben copiar en
+su sección correspondiente de **Supabase → Authentication → Email Templates**.
 El remitente de producción debe configurarse con SMTP propio para evitar los
 límites del remitente de prueba de Supabase.
 

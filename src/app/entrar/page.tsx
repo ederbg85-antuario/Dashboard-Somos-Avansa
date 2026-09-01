@@ -78,7 +78,7 @@ export default async function PaginaEntrar({
               )}
               {motivo === "enlace-invalido" && (
                 <p role="alert" className="mb-4 rounded-xl bg-coral-50 px-3 py-2.5 text-[0.8rem] leading-snug text-coral-700">
-                  El enlace de invitación venció o ya fue usado. Solicita uno nuevo a un administrador.
+                  El enlace venció o ya fue usado. Solicita uno nuevo e inténtalo otra vez.
                 </p>
               )}
               <Formulario destino={destino} />

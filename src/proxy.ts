@@ -10,7 +10,7 @@ import { createServerClient } from "@supabase/ssr";
  */
 
 /** Rutas que se sirven sin sesión. */
-const PUBLICAS = ["/entrar", "/auth"];
+const PUBLICAS = ["/entrar", "/auth", "/recuperar-contrasena"];
 const WEBHOOK_CHATWOOT = "/api/webhooks/chatwoot";
 const CRON_PUBLICADOR = "/api/cron/publicar-contenido";
 

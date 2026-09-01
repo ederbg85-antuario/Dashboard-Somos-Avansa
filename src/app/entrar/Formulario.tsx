@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { Campo } from "@/components/ui/Campo";
@@ -16,6 +17,15 @@ export function Formulario({ destino }: { destino: string }) {
              placeholder="tu@somosavansa.com" requerido />
       <Campo etiqueta="Contraseña" name="password" type="password"
              autoComplete="current-password" placeholder="••••••••" requerido />
+
+      <div className="-mt-1 text-right">
+        <Link
+          href="/recuperar-contrasena"
+          className="text-[0.76rem] font-medium text-coral-700 transition hover:text-coral"
+        >
+          ¿Olvidaste tu contraseña?
+        </Link>
+      </div>
 
       {estado.error && (
         <p role="alert" className="flex items-start gap-2 rounded-xl bg-coral-50 px-3 py-2.5 text-[0.8rem] leading-snug text-coral-700">
